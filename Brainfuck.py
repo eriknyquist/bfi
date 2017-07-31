@@ -4,7 +4,12 @@ import time
 class Control:
     def __init__(self, tape_size):
         self.tape = bytearray(tape_size)
+        self.size = tape_size
         self.i = 0
+
+    def __checkIndex(self):
+        if self.i < 0 or self.i >= self.size:
+            raise IndexError('Memory access outside cells 0-%d' % self.size)
 
     def incrementPointer(self):
         self.i += 1
@@ -13,21 +18,25 @@ class Control:
         self.i -= 1
 
     def incrementData(self):
+        self.__checkIndex()
         if self.tape[self.i] == 255:
             self.tape[self.i] = 0
         else:
             self.tape[self.i] += 1
 
     def decrementData(self):
+        self.__checkIndex()
         if self.tape[self.i] == 0:
             self.tape[self.i] = 255
         else:
             self.tape[self.i] -= 1
 
     def get(self):
+        self.__checkIndex()
         return self.tape[self.i]
 
     def put(self, intVal):
+        self.__checkIndex()
         self.tape[self.i] = intVal
 
 
