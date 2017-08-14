@@ -12,6 +12,11 @@ genetic programming algorithm that evolves Brainfuck code.
   Brainfuck program can optionally be buffered and returned as a string
 
 
+Check out `BrainfuckIntern <https://github.com/eriknyquist/BrainfuckIntern>`_,
+a Python program that writes Brainfuck programs, using this very Brainfuck
+interpreter to provide information for a useful fitness evaluation on generated
+Brainfuck programs
+
 Implementation details
 ----------------------
 
@@ -19,6 +24,30 @@ Implementation details
 * Tape size is configurable, default is 300,000 cells
 * Cells are one byte, valid values between 0-255. Overflow/underflow wraps
   around
+
+Examples
+--------
+
+Using the Brainfuck module to execute some Brainfuck code normally (reading
+data directly from stdin and writing directly to stdout):
+
+::
+
+    >>> import Brainfuck
+    >>> with open('samples/hello_world.b', 'r') as fh:
+    ...     brainfuck_code = fh.read()
+    ...
+    >>> Brainfuck.interpret(brainfuck_code)
+    Hello World!
+
+
+Now, reading data from stdin and returning stdout data as a string:
+
+::
+
+    >>> ret = Brainfuck.interpret(brainfuck_code, buffer_stdout=True)
+    >>> print ret
+    Hello World!
 
 Reference
 ---------
