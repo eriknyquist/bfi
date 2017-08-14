@@ -69,7 +69,7 @@ def count_dupes_ahead(string, index):
 
     return ret
 
-def interpret(program, stdin=None, time_limit=None, tape_size=300000,
+def interpret(program, stdin=None, time_limit=None, tape_size=30000,
               buffer_stdout=False):
     ctrl = Control(tape_size)
     if stdin != None:
