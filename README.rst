@@ -74,5 +74,6 @@ The Brainfuck module only has one method of interest, the ``interpret`` method:
 data is returned. Otherise, an empty string is returned. If ``time_limit`` is
 reached before the interpreter completes, ``None`` is returned.
 
-**Exceptions:** Throws ``ValueError`` for unmatched ``[`` or ``]`` characters.
-Throws ``IndexError`` for a bad cell access (cell pointer outside the tape).
+**Exceptions:** Throws ``BrainfuckSyntaxError`` for unmatched ``[`` or ``]``
+characters. Throws ``BrainfuckMemoryError`` for a bad cell access (cell pointer
+outside the tape).
