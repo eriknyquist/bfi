@@ -21,7 +21,7 @@ Implementation details
 ----------------------
 
 * No change on EOF
-* Tape size is configurable, default is 300,000 cells
+* Tape size is configurable, default is 30,000 cells
 * Cells are one byte, valid values between 0-255. Overflow/underflow wraps
   around
 
