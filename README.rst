@@ -11,7 +11,6 @@ genetic programming algorithm that evolves Brainfuck code.
   parameter when invoking the interpreter method, and stdout data from the
   Brainfuck program can optionally be buffered and returned as a string
 
-
 Check out `BrainfuckIntern <https://github.com/eriknyquist/BrainfuckIntern>`_,
 a Python program that writes Brainfuck programs, using this very Brainfuck
 interpreter to provide information for a useful fitness evaluation on generated
@@ -25,15 +24,35 @@ Implementation details
 * Cells are one byte, valid values between 0-255. Overflow/underflow wraps
   around
 
-Examples
---------
+Using the interpreter from the command-line
+--------------------------------------------
 
-Using the Brainfuck module to execute some Brainfuck code normally (reading
-data directly from stdin and writing directly to stdout):
+The brainfuck interpreter can be invoked from the command line using the
+``bf.py`` script. Several sample Brainfuck programs are provided in the
+``examples`` directory. Just run ``bf.py`` and pass your brainfuck source
+file. For examle, to play "Lost Kingdom", a text-based adventure game written
+in Brainfuck, you can run this command:
 
 ::
 
-    >>> import Brainfuck
+    $> python bfi.py examples/LostKingdom.b
+
+
+Using the interpreter in your own code
+--------------------------------------
+
+You can also import the Brainfuck module to call its ``interpret()`` method
+in your own code. This allows you to access some extra features, like
+passing program input data directly to the interpreter as a string, obtaining
+program output data as a string returned by the interpreter, and imposing
+a maximum time limit for program execution to help prevent infinite loops.
+
+Here is how you use the bfi module to execute some Brainfuck code
+normally (reading data directly from stdin and writing directly to stdout):
+
+::
+
+    >>> import bfi
     >>> with open('samples/hello_world.b', 'r') as fh:
     ...     brainfuck_code = fh.read()
     ...
@@ -41,18 +60,21 @@ data directly from stdin and writing directly to stdout):
     Hello World!
 
 
-Now, reading data from stdin and returning stdout data as a string:
+Here is how you use the bfi module to execute some Brainfuck code without
+reading/writing the user's terminal; input is passed a parameter to
+``interpret()``, and any output is returned as a string.
 
 ::
 
-    >>> ret = Brainfuck.interpret(brainfuck_code, buffer_stdout=True)
+    >>> input_data = "test input"
+    >>> ret = bfi.interpret(brainfuck_code, stdin=input_data, buffer_stdout=True)
     >>> print ret
     Hello World!
 
 Reference
 ---------
 
-The Brainfuck module only has one method of interest, the ``interpret`` method:
+The bfi module only has one method of interest, the ``interpret`` method:
 
 .. code:: python
 
@@ -76,4 +98,4 @@ reached before the interpreter completes, ``None`` is returned.
 
 **Exceptions:** Throws ``BrainfuckSyntaxError`` for unmatched ``[`` or ``]``
 characters. Throws ``BrainfuckMemoryError`` for a bad cell access (cell pointer
-outside the tape).
+outside the tape).vi Br 
