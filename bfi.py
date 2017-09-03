@@ -41,7 +41,7 @@ class Control:
     def __checkIndex(self):
         if self.i < 0 or self.i >= self.size:
             raise BrainfuckMemoryError("Can't access memory at cell %d, must "
-                "be within 0-%d" % (self.i, self.size))
+                "be within range 0-%d" % (self.i, self.size - 1))
 
     def incrementPointer(self, num=1):
         self.i += num
@@ -78,6 +78,10 @@ def count_dupes_ahead(string, index):
 
 def interpret(program, stdin=None, time_limit=None, tape_size=30000,
               buffer_stdout=False):
+    if not isinstance(program, basestring):
+        raise ValueError("expecting a string containing Brainfuck code. "
+            "Got %s instead" % type(program))
+
     ctrl = Control(tape_size)
     if stdin != None:
         stdin = list(reversed(stdin))
@@ -96,7 +100,12 @@ def interpret(program, stdin=None, time_limit=None, tape_size=30000,
         return os.read(0, 1)
 
     def read_buf():
-        return stdin.pop()
+        try:
+            ret = stdin.pop()
+        except:
+            return ''
+
+        return ret
 
     do_write = write_buf if buffer_stdout else write_stdout
     do_read = read_stdin if stdin == None else read_buf
@@ -148,7 +157,7 @@ def interpret(program, stdin=None, time_limit=None, tape_size=30000,
         if time_limit != None and (time.time() - start) > time_limit:
             return None
 
-    return ''.join(ret)
+    return "".join(ret) if buffer_stdout == True else None
 
 
 def main():
