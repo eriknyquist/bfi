@@ -4,7 +4,7 @@ import glob
 
 from bfi import (interpret, BrainfuckMemoryError)
 
-SAMPLES_DIR = os.path.join("test", "samples")
+SAMPLES_DIR = os.path.join("bfi", "test", "samples")
 
 class SampleCode(object):
     def __init__(self, name):

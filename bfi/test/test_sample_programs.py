@@ -1,6 +1,6 @@
 import unittest
 
-from utils import SampleCode
+from bfi.test.utils import SampleCode
 from bfi import interpret
 
 class TestSamplePrograms(unittest.TestCase):

@@ -3,17 +3,23 @@ Brainfuck interpreter
 
 This is a python-based interpreter for the
 `Brainfuck <https://en.wikipedia.org/wiki/Brainfuck>`_ esoteric programming
-language. It has several features which make it easier to use in a
-genetic programming algorithm that evolves Brainfuck code.
+language. ``bfi`` is significantly faster than the other plain-python BF interpreter
+that can be found here on PyPi; it completes the mandelbrot fractal viewer
+program (bfi/examples/mandel.b) in about 35 mins, vs. the PyBF package which
+takes over 2 hours to complete the same program (hey, I did my best, but
+it's still Brainfuck implemented in Python. It's gonna be slow!)
 
-* Allows a maximum run-time to be set, preventing infinite loops
+Some minor extra features;
+
+* Allows a maximum run-time to be set, preventing infinite loops (useful for
+  auto-generated brainfuck code)
 * stdin data can optionally be passed to the Brainfuck program as a string
   parameter when invoking the interpreter method, and stdout data from the
   Brainfuck program can optionally be buffered and returned as a string
 
 Check out `BrainfuckIntern <https://github.com/eriknyquist/BrainfuckIntern>`_,
-a Python program that writes Brainfuck programs, using this very Brainfuck
-interpreter to provide information for a useful fitness evaluation on generated
+an implementation of a genetic algorithm that writes Brainfuck programs,
+using ``bfi`` to provide information for a useful fitness evaluation on generated
 Brainfuck programs
 
 Implementation details
@@ -24,30 +30,38 @@ Implementation details
 * Cells are one byte, valid values between 0-255. Overflow/underflow wraps
   around
 
-Using the interpreter from the command-line
---------------------------------------------
+Installing
+----------
 
-The brainfuck interpreter can be invoked from the command line using the
-``bf.py`` script. Several sample Brainfuck programs are provided in the
-``examples`` directory. Just run ``bf.py`` and pass your brainfuck source
-file. For examle, to play "Lost Kingdom", a text-based adventure game written
-in Brainfuck, you can run this command:
+Use ``pip`` to install:
 
 ::
 
-    $> python bfi.py examples/LostKingdom.b
+    pip install bfi
+
+Using the interpreter from the command-line
+--------------------------------------------
+
+Once installed, the brainfuck interpreter can be invoked from the command line
+using the ``bfi`` command. Just run ``bfi`` and pass a brainfuck source file.
+Several sample Brainfuck programs are provided in the ``examples`` directory
+within the installed package (in your system's python2.7/dist-packages
+directory- on linux-based systems, for example, the full path might be
+/usr/local/lib/python2.7/dist-packages/bfi/examples).
+
+In the sample commands below, we will run "Lost Kingdom", a text-based adventure
+game written in Brainfuck:
+
+::
+
+    $> cd <dist-packages-directory>/bfi/examples
+    $> bfi LostKingdom.b
 
 
 Using the interpreter in your own code
 --------------------------------------
 
-You can also import the Brainfuck module to call its ``interpret()`` method
-in your own code. This allows you to access some extra features, like
-passing program input data directly to the interpreter as a string, obtaining
-program output data as a string returned by the interpreter, and imposing
-a maximum time limit for program execution to help prevent infinite loops.
-
-Here is how you use the bfi module to execute some Brainfuck code
+Here is how you use the ``bfi`` module to execute some Brainfuck code
 normally (reading data directly from stdin and writing directly to stdout):
 
 ::
@@ -60,7 +74,7 @@ normally (reading data directly from stdin and writing directly to stdout):
     Hello World!
 
 
-Here is how you use the bfi module to execute some Brainfuck code without
+Here is how you use the ``bfi`` module to execute some Brainfuck code without
 reading/writing the user's terminal; input is passed a parameter to
 ``interpret()``, and any output is returned as a string.
 
@@ -74,7 +88,7 @@ reading/writing the user's terminal; input is passed a parameter to
 Reference
 ---------
 
-The bfi module only has one method of interest, the ``interpret`` method:
+The ``bfi`` module only has one method of interest, the ``interpret`` method:
 
 .. code:: python
 
@@ -96,6 +110,50 @@ The bfi module only has one method of interest, the ``interpret`` method:
 data is returned. Otherise, an empty string is returned. If ``time_limit`` is
 reached before the interpreter completes, ``None`` is returned.
 
-**Exceptions:** Throws ``BrainfuckSyntaxError`` for unmatched ``[`` or ``]``
-characters. Throws ``BrainfuckMemoryError`` for a bad cell access (cell pointer
-outside the tape).vi Br 
+**Exceptions:** Throws ``bfi.BrainfuckSyntaxError`` for unmatched ``[`` or ``]``
+characters. Throws ``bfi.BrainfuckMemoryError`` for a bad cell access (cell
+pointer outside the tape).
+
+Example Brainfuck programs
+--------------------------
+
+I have included several random Brainfuck programs that I've found in various
+places. I didn't write any of these programs, I just copied them as-is
+from other public sources. Descriptive comments (and author's name, in some
+cases) can be seen in the Brainfuck source files themselves.
+
+A description of the example Brainfuck programs included with this package
+follows:
+
+* **bfcl.bf**: A Brainfuck-to-ELF translator, in Brainfuck. Reads in Brainfuck
+  source from stdin and writes a Linux ELF file to stdout
+
+* **bitwidth.bf** Assorted tests for Brainfuck interpreter/compiler correctness
+
+* **collatz.b** A demonstration of the Collatz problem in Brainfuck
+
+* **eoftest.b** Tests EOF behaviour of brainfuck interpreters/compilers
+
+* **fib.b** Prints a neverending fibonacci sequence
+
+* **gameoflife.b** Conway's Game of Life in Brainfuck
+
+* **hanoi.b** Towers of Hanoi in Brainfuck
+
+* **hello_world.b** Classic "hello, world!" in Brainfuck
+
+* **LostKingdom.b** A text-based adventure game in Brainfuck
+
+* **mandel.b** An ASCII  mandelbrot fractal set viewer in Brainfuck
+
+* **numwarp.b** Prints an enlarged ASCII representation of numbers entered by
+  the user
+
+* **primes.bf** Prints prime numbers
+
+* **rot13.b** Prints the ROT13 encoding of the string entered by the user
+
+* **sierpinksi.b** Displays the Sierpinksi triangle
+
+* **TheBrainfuckedLoneWolf.b** ASCII asteroids-inspired top-down shooter game
+  in Brainfuck

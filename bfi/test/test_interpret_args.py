@@ -1,6 +1,6 @@
 import unittest
 
-from test.utils import SampleCode, verify_exec_time, verify_tape_size
+from bfi.test.utils import SampleCode, verify_exec_time, verify_tape_size
 from bfi import (interpret, BrainfuckMemoryError, BrainfuckSyntaxError)
 
 class TestInterpretArguments(unittest.TestCase):
