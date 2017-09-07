@@ -3,11 +3,13 @@ Brainfuck interpreter
 
 This is a python-based interpreter for the
 `Brainfuck <https://en.wikipedia.org/wiki/Brainfuck>`_ esoteric programming
-language. ``bfi`` is significantly faster than the other plain-python BF interpreter
-that can be found here on PyPi; it completes the mandelbrot fractal viewer
-program (bfi/examples/mandel.b) in about 35 mins, vs. the PyBF package which
-takes over 2 hours to complete the same program (hey, I did my best, but
-it's still Brainfuck implemented in Python. It's gonna be slow!)
+language. ``bfi`` implements the standard optimisations for clear loop, copy
+loop, multiply loop and scan loop constructs, and is reasonably fast. The
+"towers of hanoi" Brainfuck program (``hanoi.b``) completes in about 2 minutes
+(compared to over an hour using a python-based interpreter with no
+optimisations),  and the mandelbrot fractal set viewer (``mandel.b``) completes
+in about 30 minutes (compared to over 2 hours using a python-based interpreter
+with no optimisations).
 
 Some minor extra features;
 

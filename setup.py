@@ -34,12 +34,13 @@ class RunBFITests(Command):
         t.run(suite)
 
 with open(README, 'r') as f:
-        long_description = f.read()
+    long_description = f.read()
 
 setup(
     name='bfi',
-    version='0.2.4',
-    description='A (pretty fast) Brainfuck interpreter',
+    version='0.2.6',
+    description=('A reasonably fast optimizing Brainfuck interpreter '
+        'in pure python'),
     long_description=long_description,
     url='http://github.com/eriknyquist/bfi',
     author='Erik Nyquist',

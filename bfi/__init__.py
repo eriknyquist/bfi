@@ -12,6 +12,8 @@ OPCODE_INPUT  = 6
 OPCODE_OUTPUT = 7
 OPCODE_CLEAR  = 8
 OPCODE_COPY   = 9
+OPCODE_SCANL  = 10
+OPCODE_SCANR  = 11
 
 opcode_map = {
     "<": OPCODE_LEFT,
@@ -31,14 +33,36 @@ class BrainfuckMemoryError(Exception):
     pass
 
 class Opcode(object):
+    name_map = {
+        OPCODE_LEFT: "left",
+        OPCODE_RIGHT: "right",
+        OPCODE_ADD: "add",
+        OPCODE_SUB: "sub",
+        OPCODE_OPEN: "open",
+        OPCODE_CLOSE: "close",
+        OPCODE_INPUT: "input",
+        OPCODE_OUTPUT: "output",
+        OPCODE_CLEAR: "clear",
+        OPCODE_COPY: "copy",
+        OPCODE_SCANL: "scanl",
+        OPCODE_SCANR: "scanr"
+    }
+
     def __init__(self, code, value=None):
         self.code = code
         self.value = value
+
+    def __str__(self):
+        return '%s %s' % (self.name_map[self.code], self.value)
 
 def raise_unmatched(brace):
     raise BrainfuckSyntaxError("Error: unmatched '" + brace + "' symbol")
 
 def count_dupes_ahead(string, index):
+    """
+    Counts the number of repeated characters in 'string', starting at 'index'
+    """
+
     ret = 0
     i = index
     end = len(string) - 1
@@ -50,40 +74,118 @@ def count_dupes_ahead(string, index):
     return ret
 
 def is_copyloop(program, size, index):
-    if (size - index - 1) < 20:
-        MAX_COPYLOOP_LEN = size - index - 1
-    else:
-        MAX_COPYLOOP_LEN = 20
+    """
+    Detects a copy loop, or a multiply loop and returns equivalent opcodes
+    """
 
-    if MAX_COPYLOOP_LEN < 2 or program[index + 1] != "-":
-        return 0, 0
+    # Copy/multiply loop must start with a decrement
+    if (index > (size - 6)) or (program[index + 1] != "-"):
+        return [], 0
 
-    i = 0
+    mult = 0
     depth = 0
-    index += 2
+    mults = {}
+    i = index + 2
 
-    while (i < MAX_COPYLOOP_LEN) and (program[i:i + 2] == ">+"):
-        depth += 1
-        i += 2
+    # Consume the loop contents until the cell pointer movement changes
+    # direction. Keep track of pointer movement, and the number of increments
+    # at each cell, so we can create Opcodes to recreate the copy / multiply
+    # operations performed by the loop
+    while i < size:
+        if program[i] in "><":
+            if mult > 0:
+                mults[depth] = mult
+                mult = 0
 
-    if depth == 0:
-        return 0, 0
+            if program[i] == "<":
+                break
 
-    maxdepth = depth
+            depth += 1
 
-    while i < MAX_COPYLOOP_LEN:
-        if program[i] == "]" and depth == 0:
-            return maxdepth, i
+        elif program[i] == "+":
+            mult += 1
 
-        elif program[i] != "<":
-            return 0, 0
+        else:
+            return [], 0
+
+        i += 1
+
+    # If no cell or pointer increments by now, this isn't a copy/multiply loop
+    if (len(mults) == 0) or (depth == 0) or (i == (size - 1)):
+        return [], 0
+
+    ret = [Opcode(OPCODE_COPY, mults)]
+
+    # Consume all the pointer decrements until the end of the loop.
+    # If we encounter any non-"<" characters in the loop at this stage,
+    # this isn't a copy/multiply loop (at least, not one I want to mess with!)
+    while (i < size) and (program[i] != "]"):
+        if program[i] != "<":
+            return [], 0
 
         depth -= 1
         i += 1
 
-    return 0, 0
+    if (depth != 0) or (i == (size - 1)):
+        return [], 0
+
+    return ret, (i - index) + 1
+
+def is_scanloop(program, size, index):
+    """
+    Detects a scan loop and returns equivalent opcodes
+    """
+
+    if index < (size - 3):
+        clr = program[index : index + 3]
+
+        if clr == "[>]":
+            return [Opcode(OPCODE_SCANR)], 3
+
+        elif clr == "[<]":
+            return [Opcode(OPCODE_SCANL)], 3
+
+    return [], 0
+
+def is_clearloop(program, size, index):
+    """
+    Detects a clear loop and returns equivalent opcodes
+    """
+
+    if index < (size - 3):
+        clr = program[index : index + 3]
+        if clr == "[+]" or clr == "[-]":
+            return [Opcode(OPCODE_CLEAR)], 3
+
+    return [], 0
+
+def run_optimizers(program, size, i):
+    """
+    Runs all the loop optimizers on the current token, and returns
+    the resulting opcodes of the first one that succeeds
+    """
+
+    loop_opts = [
+        is_clearloop, is_copyloop, is_scanloop
+    ]
+
+    for opt in loop_opts:
+        codes, chars = opt(program, size, i)
+        if chars > 0:
+            return codes, chars
+
+    return [], 0
 
 def parse(program):
+    """
+    Convert the BF source into some more efficient opcodes. Specifically;
+        - Strip out whitespace and any other non-BF characters
+        - Replace copy loops, multiply loops, clear loops and scan loops with
+          a single opcode that acheives the same effect
+        - Collapse sequences of repeated "+", "-", ">" and "<" characters into
+          a single opcode
+    """
+
     left_positions = []
     opcodes = []
 
@@ -99,22 +201,14 @@ def parse(program):
         opcode = opcode_map[program[i]]
 
         if opcode == OPCODE_OPEN:
-            # Optimise for 'clear cell value to 0' construct
-            if i <= (size - 2):
-                clr = program[i : i + 3]
-                if clr == "[-]" or clr == "[+]":
-                    opcodes.append(Opcode(OPCODE_CLEAR))
-                    i += 3
-                    continue
-
-            # Optimise for copy-loop construct
-            copies, chars = is_copyloop(program, size, i)
-            if copies > 0:
-                opcodes.append(Opcode(OPCODE_COPY, range(1, copies + 1)))
-                opcodes.append(Opcode(OPCODE_CLEAR))
-                i += chars + 1
+            # Optimize common loop constructs
+            codes, chars = run_optimizers(program, size, i)
+            if chars > 0:
+                opcodes.extend(codes)
+                i += chars
                 continue
 
+            # No optimization possible, treat as normal BF loop
             left_positions.append(len(opcodes))
             opcodes.append(Opcode(OPCODE_OPEN))
 
@@ -127,7 +221,7 @@ def parse(program):
             opcodes[left].value = right
             opcodes.append(Opcode(OPCODE_CLOSE, value=left))
 
-        elif opcode == OPCODE_INPUT or opcode == OPCODE_OUTPUT:
+        elif opcode in [OPCODE_INPUT, OPCODE_OUTPUT]:
             opcodes.append(Opcode(opcode_map[program[i]]))
 
         else:
@@ -171,12 +265,26 @@ class Control:
         self.__checkIndex(self.i)
         self.tape[self.i] = 0
 
-    def copyData(self, *offs):
+    def copyMultiply(self, mults):
         self.__checkIndex(self.i)
-        for off in offs:
+
+        for off in mults:
             index = self.i + off
             self.__checkIndex(index)
-            self.tape[index] = self.tape[self.i]
+            self.tape[index] = (self.tape[index]
+                + (self.tape[self.i] * mults[off])) % 256
+
+        self.tape[self.i] = 0
+
+    def scanLeft(self):
+        self.__checkIndex(self.i)
+        while self.tape[self.i] != 0:
+            self.i -= 1
+
+    def scanRight(self):
+        self.__checkIndex(self.i)
+        while self.tape[self.i] != 0:
+            self.i += 1
 
     def get(self):
         self.__checkIndex(self.i)
@@ -186,25 +294,12 @@ class Control:
         self.__checkIndex(self.i)
         self.tape[self.i] = intVal
 
-def print_opcodes(opcodes):
-    name_map = {
-        OPCODE_LEFT: "left",
-        OPCODE_RIGHT: "right",
-        OPCODE_ADD: "add",
-        OPCODE_SUB: "sub",
-        OPCODE_OPEN: "open",
-        OPCODE_CLOSE: "close",
-        OPCODE_INPUT: "input",
-        OPCODE_OUTPUT: "output",
-        OPCODE_CLEAR: "clear",
-        OPCODE_COPY: "copy"
-    }
-
-    for op in opcodes:
-        print "%s %s" % (name_map[op.code], op.value)
-
 def interpret(program, stdin=None, time_limit=None, tape_size=30000,
               buffer_stdout=False):
+    """
+    Interpret & execute a brainfuck program
+    """
+
     if not isinstance(program, basestring):
         raise ValueError("expecting a string containing Brainfuck code. "
             "Got %s instead" % type(program))
@@ -213,12 +308,11 @@ def interpret(program, stdin=None, time_limit=None, tape_size=30000,
     if stdin != None:
         stdin = list(reversed(stdin))
 
-    opcodes = parse(program)   # IR opcodes
-    size = len(opcodes)        # number of opcodes in IR
-    ret = []                   # program output
-    i = 0                      # index of current character in program
+    opcodes = parse(program)
+    size = len(opcodes)
+    ret = []
+    i = 0
 
-    #print_opcodes(opcodes)
 
     def write_stdout(c):
         os.write(1, c)
@@ -262,12 +356,22 @@ def interpret(program, stdin=None, time_limit=None, tape_size=30000,
             ctrl.clearData()
 
         elif op.code == OPCODE_COPY:
-            ctrl.copyData(*op.value)
-        elif op.code == OPCODE_OPEN and ctrl.get() == 0:
-            i = op.value - 1
+            if ctrl.get() != 0:
+                ctrl.copyMultiply(op.value)
 
-        elif op.code == OPCODE_CLOSE and ctrl.get() != 0:
-            i = op.value - 1
+        elif op.code == OPCODE_SCANL:
+            ctrl.scanLeft()
+
+        elif op.code == OPCODE_SCANR:
+            ctrl.scanRight()
+
+        elif op.code == OPCODE_OPEN:
+            if ctrl.get() == 0:
+                i = op.value - 1
+
+        elif op.code == OPCODE_CLOSE:
+            if ctrl.get() != 0:
+                i = op.value - 1
 
         elif op.code == OPCODE_OUTPUT:
             do_write(chr(ctrl.get()))
