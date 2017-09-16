@@ -73,6 +73,7 @@ normally (reading data directly from stdin and writing directly to stdout):
     ...     brainfuck_code = fh.read()
     ...
     >>> Brainfuck.interpret(brainfuck_code)
+
     Hello World!
 
 
@@ -85,16 +86,21 @@ reading/writing the user's terminal; input is passed a parameter to
     >>> input_data = "test input"
     >>> ret = bfi.interpret(brainfuck_code, stdin=input_data, buffer_stdout=True)
     >>> print ret
+
     Hello World!
 
 Reference
 ---------
 
-The ``bfi`` module only has one method of interest, the ``interpret`` method:
+``bfi.interpret``
+#################
 
 .. code:: python
 
-   Brainfuck.interpret(program, stdin=None, time_limit=None, tape_size=300000, buffer_stdout=False):
+   bfi.interpret(program, stdin=None, time_limit=None, tape_size=300000, buffer_stdout=False)
+
+Simplest usage of ``bfi``. Calls ``bfi.parse`` and ``bfi.execute`` to execute
+a string of brainfuck source code
 
 * **Parameter** ``program``: String. Brainfuck code to be interpreted
 * **Parameter** ``stdin``: String. stdin data for Brainfuck program. If not set,
@@ -112,9 +118,133 @@ The ``bfi`` module only has one method of interest, the ``interpret`` method:
 data is returned. Otherise, an empty string is returned. If ``time_limit`` is
 reached before the interpreter completes, ``None`` is returned.
 
-**Exceptions:** Throws ``bfi.BrainfuckSyntaxError`` for unmatched ``[`` or ``]``
-characters. Throws ``bfi.BrainfuckMemoryError`` for a bad cell access (cell
-pointer outside the tape).
+**Exceptions:** Raises ``bfi.BrainfuckSyntaxError`` for unmatched ``[`` or ``]``
+characters. Raises ``bfi.BrainfuckMemoryError`` for a bad cell access
+
+``bfi.parse``
+#############
+
+.. code:: python
+
+   bfi.parse(program)
+
+Reads a string of brainfuck source and compiles to intermediate opcodes
+
+* **Parameter** ``program`` : String. Brainfuck source code to be parsed
+
+**Return value:** list of compiled opcodes
+
+**Exceptions** Raises ``bfi.BrainfuckSyntaxError`` for unmatched ``[`` or ``]``
+characters.
+
+``bfi.execute``
+###############
+
+.. code:: python
+
+   bfi.execute(opcodes, <keyword_args>)
+
+Executes a list of compiled opcodes
+
+* **Parameter** ``opcodes`` : List. Opcodes to be executed
+
+* **Parameter** ``<keyword_args>``: ``bfi.execute`` takes the same keyword
+  arguments as ``bfi.interpret``
+
+**Return value:** If ``buffer_stdout`` is set, a string containing the output
+data is returned. Otherise, an empty string is returned. If ``time_limit`` is
+reached before the interpreter completes, ``None`` is returned.
+
+**Exceptions** Raises ``bfi.BrainfuckMemoryError`` for bad cell access
+
+Gratuitous unnecessary extras
+-----------------------------
+
+In order to make Brainfuck code execute more efficiently, it is compiled into
+an intermediate form that takes advantage of common brainfuck idioms and
+constructs. This intermediate form consists of 12 opcodes, 8 of which are
+similar to the original 8 brainfuck instructions. Here is a description of the
+12 opcodes, and what they do:
+
++-----------------------------------+-----------------------------------------+
+|            **Opcode**             |             **Description**             |
++-----------------------------------+-----------------------------------------+
+|          ``left <num>``           | Decrements the cell pointer by ``<num>``|
+|                                   | cells pointer outside the tape).        |
++-----------------------------------+-----------------------------------------+
+|          ``right <num>``          | Increments the cell pointer by ``<num>``|
+|                                   | cells                                   |
++-----------------------------------+-----------------------------------------+
+|          ``sub <num>``            | Decrements value of current cell by     |
+|                                   | ``<num>`` cells                         |
++-----------------------------------+-----------------------------------------+
+|          ``add <num>``            | Increments value of current cell by     |
+|                                   | ``<num>`` cells                         |
++-----------------------------------+-----------------------------------------+
+|         ``open <location>``       | ``<location>`` is an index into the list|
+|                                   | of program opcodes. If the value of     |
+|                                   | current cell is zero, jump to           |
+|                                   | ``<location>``. Otherwise, continue     |
+|                                   | execution normally (Same functionality  |
+|                                   | as brainfuck "[" instruction, except    |
+|                                   | jump location is stored with opcode)    |
++-----------------------------------+-----------------------------------------+
+|         ``close <location>``      | ``<location>`` is an index into the list|
+|                                   | of program opcodes. If the value of     |
+|                                   | current cell is zero, continue execution|
+|                                   | normally. Otherwise, jump to            |
+|                                   | ``<location>`` (Same functionality as   |
+|                                   | brainfuck "]" instruction, except jump  |
+|                                   | location is stored with opcode)         |
++-----------------------------------+-----------------------------------------+
+|             ``input``             | Read one character of input and write to|
+|                                   | current cell                            |
++-----------------------------------+-----------------------------------------+
+|             ``output``            | Print value of current cell as ASCII    |
+|                                   | character                               |
++-----------------------------------+-----------------------------------------+
+|             ``clear``             | Set value of current cell to zero       |
++-----------------------------------+-----------------------------------------+
+|  ``copy {<off>:<mult>, ... }``    | For each key/value pair, set the value  |
+|                                   | of the cell at (current cell + ``<off>``|
+|                                   | ) to be (value of current cell *        |
+|                                   | ``<mult>``)                             |
++-----------------------------------+-----------------------------------------+
+|             ``scanl``             | Decrement the cell pointer until it     |
+|                                   | points at a cell containing 0           |
++-----------------------------------+-----------------------------------------+
+|             ``scanr``             | Increment the cell pointer until it     |
+|                                   | points at a cell containing 0           |
++-----------------------------------+-----------------------------------------+
+
+If you *really want to*, you can actually view a brainfuck program in this
+intermediate form, by using the ``bfi.parse`` method and printing the resulting
+opcodes:
+
+::
+
+    >>> with open('bfi/examples/mandel.b', 'r') as fh:
+    ...     program = fh.read()
+    ... 
+    >>> opcodes = bfi.parse(program)
+    >>> for c in opcodes: print c
+    ...
+
+    add 13
+    copy {1: 2, 4: 5, 5: 2, 6: 1}
+    right 5
+    add 6
+    right 1
+    sub 3
+    right 10
+    add 15
+    open 18
+    open 11
+
+    ... (long output, truncated...)
+
+And of course, you can execute the compiled opcodes as many times as you like
+using ``bfi.execute``.
 
 Example Brainfuck programs
 --------------------------

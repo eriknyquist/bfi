@@ -53,7 +53,11 @@ class Opcode(object):
         self.value = value
 
     def __str__(self):
-        return '%s %s' % (self.name_map[self.code], self.value)
+        ret = '%s' % self.name_map[self.code]
+        if self.value is not None:
+            ret += ' %s' % self.value
+
+        return ret
 
 def raise_unmatched(brace):
     raise BrainfuckSyntaxError("Error: unmatched '" + brace + "' symbol")
@@ -294,25 +298,19 @@ class Control:
         self.__checkIndex(self.i)
         self.tape[self.i] = intVal
 
-def interpret(program, stdin=None, time_limit=None, tape_size=30000,
+def execute(opcodes, stdin=None, time_limit=None, tape_size=30000,
               buffer_stdout=False):
     """
-    Interpret & execute a brainfuck program
+    Execute compiled opcodes
     """
-
-    if not isinstance(program, basestring):
-        raise ValueError("expecting a string containing Brainfuck code. "
-            "Got %s instead" % type(program))
 
     ctrl = Control(tape_size)
     if stdin != None:
         stdin = list(reversed(stdin))
 
-    opcodes = parse(program)
     size = len(opcodes)
     ret = []
     i = 0
-
 
     def write_stdout(c):
         os.write(1, c)
@@ -388,6 +386,17 @@ def interpret(program, stdin=None, time_limit=None, tape_size=30000,
 
     return "".join(ret) if buffer_stdout == True else None
 
+def interpret(program, **kwargs):
+    """
+    Interpret & execute a brainfuck program
+    """
+
+    if not isinstance(program, basestring):
+        raise ValueError("expecting a string containing Brainfuck code. "
+            "Got %s instead" % type(program))
+
+    opcodes = parse(program)
+    return execute(opcodes, **kwargs)
 
 def main():
     if len(sys.argv) != 2:
