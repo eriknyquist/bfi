@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+from collections import defaultdict
 
 OPCODE_LEFT   = 0
 OPCODE_RIGHT  = 1
@@ -245,58 +246,57 @@ class Control:
         self.tape = bytearray(tape_size)
         self.size = tape_size
         self.i = 0
+        self._i = 0
 
-    def __checkIndex(self, i):
+    def _check_index(self, i):
         if i < 0 or i >= self.size:
             raise BrainfuckMemoryError("Can't access memory at cell %d, must "
                 "be within range 0-%d" % (i, self.size - 1))
 
     def incrementPointer(self, num=1):
-        self.i += num
+        self._i += num
 
     def decrementPointer(self, num=1):
-        self.i -= num
+        self._i -= num
 
     def incrementData(self, num=1):
-        self.__checkIndex(self.i)
-        self.tape[self.i] = (self.tape[self.i] + num) % 256
+        self._check_index(self._i)
+        self.tape[self._i] = (self.tape[self._i] + num) % 256
 
     def decrementData(self, num=1):
-        self.__checkIndex(self.i)
-        self.tape[self.i] = (self.tape[self.i] - num) % 256
+        self._check_index(self._i)
+        self.tape[self._i] = (self.tape[self._i] - num) % 256
 
-    def clearData(self):
-        self.__checkIndex(self.i)
-        self.tape[self.i] = 0
+    def clearData(self, op_value):
+        self._check_index(self._i)
+        self.tape[self._i] = 0
 
     def copyMultiply(self, mults):
-        self.__checkIndex(self.i)
+        self._check_index(self._i)
 
         for off in mults:
-            index = self.i + off
-            self.__checkIndex(index)
+            index = self._i + off
+            self._check_index(index)
             self.tape[index] = (self.tape[index]
-                + (self.tape[self.i] * mults[off])) % 256
+                + (self.tape[self._i] * mults[off])) % 256
 
-        self.tape[self.i] = 0
+        self.tape[self._i] = 0
 
-    def scanLeft(self):
-        self.__checkIndex(self.i)
-        while self.tape[self.i] != 0:
-            self.i -= 1
+    def scanLeft(self, op_value):
+        while self._i > 0 and self.tape[self._i] != 0:
+            self._i -= 1
 
-    def scanRight(self):
-        self.__checkIndex(self.i)
-        while self.tape[self.i] != 0:
-            self.i += 1
+    def scanRight(self, op_value):
+        while self._i < (self.size - 1) and self.tape[self._i] != 0:
+            self._i += 1
 
     def get(self):
-        self.__checkIndex(self.i)
-        return self.tape[self.i]
+        self._check_index(self._i)
+        return self.tape[self._i]
 
     def put(self, intVal):
-        self.__checkIndex(self.i)
-        self.tape[self.i] = intVal
+        self._check_index(self._i)
+        self.tape[self._i] = intVal
 
 def execute(opcodes, stdin=None, time_limit=None, tape_size=30000,
               buffer_stdout=False):
@@ -310,7 +310,7 @@ def execute(opcodes, stdin=None, time_limit=None, tape_size=30000,
 
     size = len(opcodes)
     ret = []
-    i = 0
+    ctrl.i = 0
 
     def write_stdout(c):
         os.write(1, c)
@@ -332,57 +332,60 @@ def execute(opcodes, stdin=None, time_limit=None, tape_size=30000,
     do_write = write_buf if buffer_stdout else write_stdout
     do_read = read_stdin if stdin == None else read_buf
 
-    if time_limit != None:
+    def do_open(op_value):
+        if ctrl.get() == 0:
+           ctrl.i = op_value - 1
+
+    def do_close(op_value):
+        if ctrl.get() != 0:
+            ctrl.i = op_value - 1
+
+    def do_output(op_value):
+        do_write(chr(ctrl.get()))
+
+    def do_input(op_value):
+        ch = do_read()
+        if len(ch) > 0 and ord(ch) > 0:
+            ctrl.put(ord(ch))
+
+    def do_copy(op_value):
+        if ctrl.get() != 0:
+            ctrl.copyMultiply(op_value)
+
+    cmd_map = defaultdict(
+        lambda: None,
+        {
+            OPCODE_RIGHT: ctrl.incrementPointer,
+            OPCODE_LEFT: ctrl.decrementPointer,
+            OPCODE_ADD: ctrl.incrementData,
+            OPCODE_SUB: ctrl.decrementData,
+            OPCODE_CLEAR: ctrl.clearData,
+            OPCODE_COPY: do_copy,
+            OPCODE_SCANL: ctrl.scanLeft,
+            OPCODE_SCANR: ctrl.scanRight,
+            OPCODE_OPEN: do_open,
+            OPCODE_CLOSE: do_close,
+            OPCODE_OUTPUT: do_output,
+            OPCODE_INPUT: do_input
+        }
+    )
+
+    def do_loop():
+        op = opcodes[ctrl.i]
+        func = cmd_map[op.code]
+        func(op.value)
+        ctrl.i += 1
+
+    if time_limit:
         start = time.time()
+        while ctrl.i < size:
+            do_loop()
 
-    while i < size:
-        op = opcodes[i]
-
-        if op.code == OPCODE_RIGHT:
-            ctrl.incrementPointer(op.value)
-
-        elif op.code == OPCODE_LEFT:
-            ctrl.decrementPointer(op.value)
-
-        elif op.code == OPCODE_ADD:
-            ctrl.incrementData(op.value)
-
-        elif op.code == OPCODE_SUB:
-            ctrl.decrementData(op.value)
-
-        elif op.code == OPCODE_CLEAR:
-            ctrl.clearData()
-
-        elif op.code == OPCODE_COPY:
-            if ctrl.get() != 0:
-                ctrl.copyMultiply(op.value)
-
-        elif op.code == OPCODE_SCANL:
-            ctrl.scanLeft()
-
-        elif op.code == OPCODE_SCANR:
-            ctrl.scanRight()
-
-        elif op.code == OPCODE_OPEN:
-            if ctrl.get() == 0:
-                i = op.value - 1
-
-        elif op.code == OPCODE_CLOSE:
-            if ctrl.get() != 0:
-                i = op.value - 1
-
-        elif op.code == OPCODE_OUTPUT:
-            do_write(chr(ctrl.get()))
-
-        elif op.code == OPCODE_INPUT:
-            ch = do_read()
-            if len(ch) > 0 and ord(ch) > 0:
-                ctrl.put(ord(ch))
-
-        i += 1
-
-        if time_limit != None and (time.time() - start) > time_limit:
-            return None
+            if (time.time() - start) >= time_limit:
+                return None
+    else:
+        while ctrl.i < size:
+            do_loop()
 
     return "".join(ret) if buffer_stdout == True else None
 
