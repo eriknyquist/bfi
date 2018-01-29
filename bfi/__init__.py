@@ -3,18 +3,19 @@ import sys
 import time
 from collections import defaultdict
 
-OPCODE_LEFT   = 0
-OPCODE_RIGHT  = 1
-OPCODE_ADD    = 2
-OPCODE_SUB    = 3
-OPCODE_OPEN   = 4
-OPCODE_CLOSE  = 5
-OPCODE_INPUT  = 6
-OPCODE_OUTPUT = 7
-OPCODE_CLEAR  = 8
-OPCODE_COPY   = 9
-OPCODE_SCANL  = 10
-OPCODE_SCANR  = 11
+OPCODE_MOVE   = 0
+OPCODE_LEFT   = 1
+OPCODE_RIGHT  = 2
+OPCODE_ADD    = 3
+OPCODE_SUB    = 4
+OPCODE_OPEN   = 5
+OPCODE_CLOSE  = 6
+OPCODE_INPUT  = 7
+OPCODE_OUTPUT = 8
+OPCODE_CLEAR  = 9
+OPCODE_COPY   = 10
+OPCODE_SCANL  = 11
+OPCODE_SCANR  = 12
 
 opcode_map = {
     "<": OPCODE_LEFT,
@@ -35,8 +36,7 @@ class BrainfuckMemoryError(Exception):
 
 class Opcode(object):
     name_map = {
-        OPCODE_LEFT: "left",
-        OPCODE_RIGHT: "right",
+        OPCODE_MOVE: "move",
         OPCODE_ADD: "add",
         OPCODE_SUB: "sub",
         OPCODE_OPEN: "open",
@@ -49,12 +49,13 @@ class Opcode(object):
         OPCODE_SCANR: "scanr"
     }
 
-    def __init__(self, code, value=None):
+    def __init__(self, code, move=0, value=None):
         self.code = code
         self.value = value
+        self.move = move
 
     def __str__(self):
-        ret = '%s' % self.name_map[self.code]
+        ret = '%s %d' % (self.name_map[self.code], self.move)
         if self.value is not None:
             ret += ' %s' % self.value
 
@@ -119,7 +120,7 @@ def is_copyloop(program, size, index):
     if (len(mults) == 0) or (depth == 0) or (i == (size - 1)):
         return [], 0
 
-    ret = [Opcode(OPCODE_COPY, mults)]
+    ret = [Opcode(OPCODE_COPY, 0, mults)]
 
     # Consume all the pointer decrements until the end of the loop.
     # If we encounter any non-"<" characters in the loop at this stage,
@@ -164,7 +165,7 @@ def is_clearloop(program, size, index):
 
     return [], 0
 
-def run_optimizers(program, size, i):
+def run_optimizers(program, size, index):
     """
     Runs all the loop optimizers on the current token, and returns
     the resulting opcodes of the first one that succeeds
@@ -175,7 +176,7 @@ def run_optimizers(program, size, i):
     ]
 
     for opt in loop_opts:
-        codes, chars = opt(program, size, i)
+        codes, chars = opt(program, size, index)
         if chars > 0:
             return codes, chars
 
@@ -197,20 +198,26 @@ def parse(program):
     program = ''.join(program.split())
     size = len(program)
 
-    i = 0
-    while i < size:
-        if program[i] not in opcode_map:
-            i += 1
+    pi = 0
+    ii = 0
+
+    while pi < size:
+        if program[pi] not in opcode_map:
+            pi += 1
             continue
 
-        opcode = opcode_map[program[i]]
+        opcode = opcode_map[program[pi]]
 
         if opcode == OPCODE_OPEN:
+            if ii != 0:
+                opcodes.append(Opcode(OPCODE_MOVE, 0, ii))
+                ii = 0
+
             # Optimize common loop constructs
-            codes, chars = run_optimizers(program, size, i)
+            codes, chars = run_optimizers(program, size, pi)
             if chars > 0:
                 opcodes.extend(codes)
-                i += chars
+                pi += chars
                 continue
 
             # No optimization possible, treat as normal BF loop
@@ -224,17 +231,25 @@ def parse(program):
             left = left_positions.pop()
             right = len(opcodes)
             opcodes[left].value = right
-            opcodes.append(Opcode(OPCODE_CLOSE, value=left))
+            opcodes.append(Opcode(OPCODE_CLOSE, ii, left))
+            ii = 0
 
         elif opcode in [OPCODE_INPUT, OPCODE_OUTPUT]:
-            opcodes.append(Opcode(opcode_map[program[i]]))
-
+            opcodes.append(Opcode(opcode_map[program[pi]], ii))
+            ii = 0
         else:
-            num = count_dupes_ahead(program, i)
-            opcodes.append(Opcode(opcode_map[program[i]], value=num + 1))
-            i += num
+            num = count_dupes_ahead(program, pi)
+            if opcode == OPCODE_LEFT:
+                ii -= (num + 1)
+            elif opcode == OPCODE_RIGHT:
+                ii += (num + 1)
+            else:
+                opcodes.append(Opcode(opcode_map[program[pi]], ii, num + 1))
+                ii = 0
 
-        i += 1
+            pi += num
+
+        pi += 1
 
     if len(left_positions) != 0:
         raise_unmatched('[')
@@ -253,25 +268,26 @@ class Control:
             raise BrainfuckMemoryError("Can't access memory at cell %d, must "
                 "be within range 0-%d" % (i, self.size - 1))
 
-    def incrementPointer(self, num=1):
+    def movePointer(self, i, num):
         self._i += num
 
-    def decrementPointer(self, num=1):
-        self._i -= num
-
-    def incrementData(self, num=1):
+    def incrementData(self, i, num):
+        self._i += i
         self._check_index(self._i)
         self.tape[self._i] = (self.tape[self._i] + num) % 256
 
-    def decrementData(self, num=1):
+    def decrementData(self, i, num):
+        self._i += i
         self._check_index(self._i)
         self.tape[self._i] = (self.tape[self._i] - num) % 256
 
-    def clearData(self, op_value):
+    def clearData(self, i, op_value):
+        self._i += i
         self._check_index(self._i)
         self.tape[self._i] = 0
 
-    def copyMultiply(self, mults):
+    def copyMultiply(self, i, mults):
+        self._i += i
         self._check_index(self._i)
 
         for off in mults:
@@ -282,11 +298,17 @@ class Control:
 
         self.tape[self._i] = 0
 
-    def scanLeft(self, op_value):
+    def scanLeft(self, i, op_value):
+        self._i += i
+        self._check_index(self._i)
+
         while self._i > 0 and self.tape[self._i] != 0:
             self._i -= 1
 
-    def scanRight(self, op_value):
+    def scanRight(self, i, op_value):
+        self._i += i
+        self._check_index(self._i)
+
         while self._i < (self.size - 1) and self.tape[self._i] != 0:
             self._i += 1
 
@@ -332,31 +354,33 @@ def execute(opcodes, stdin=None, time_limit=None, tape_size=30000,
     do_write = write_buf if buffer_stdout else write_stdout
     do_read = read_stdin if stdin == None else read_buf
 
-    def do_open(op_value):
+    def do_open(i, val):
         if ctrl.get() == 0:
-           ctrl.i = op_value - 1
+           ctrl.i = val
 
-    def do_close(op_value):
+    def do_close(i, val):
+        ctrl.movePointer(0, i)
         if ctrl.get() != 0:
-            ctrl.i = op_value - 1
+            ctrl.i = val - 1
 
-    def do_output(op_value):
+    def do_output(i, val):
+        ctrl.movePointer(0, i)
         do_write(chr(ctrl.get()))
 
-    def do_input(op_value):
+    def do_input(i, val):
+        ctrl.movePointer(0, i)
         ch = do_read()
         if len(ch) > 0 and ord(ch) > 0:
             ctrl.put(ord(ch))
 
-    def do_copy(op_value):
+    def do_copy(i, val):
         if ctrl.get() != 0:
-            ctrl.copyMultiply(op_value)
+            ctrl.copyMultiply(i, val)
 
     cmd_map = defaultdict(
         lambda: None,
         {
-            OPCODE_RIGHT: ctrl.incrementPointer,
-            OPCODE_LEFT: ctrl.decrementPointer,
+            OPCODE_MOVE: ctrl.movePointer,
             OPCODE_ADD: ctrl.incrementData,
             OPCODE_SUB: ctrl.decrementData,
             OPCODE_CLEAR: ctrl.clearData,
@@ -372,8 +396,7 @@ def execute(opcodes, stdin=None, time_limit=None, tape_size=30000,
 
     def do_loop():
         op = opcodes[ctrl.i]
-        func = cmd_map[op.code]
-        func(op.value)
+        cmd_map[op.code](op.move, op.value)
         ctrl.i += 1
 
     if time_limit:
