@@ -79,7 +79,7 @@ def count_dupes_ahead(string, index):
 
     return ret
 
-def is_copyloop(program, size, index):
+def is_copyloop(program, size, index, ii):
     """
     Detects a copy loop, or a multiply loop and returns equivalent opcodes
     """
@@ -120,7 +120,7 @@ def is_copyloop(program, size, index):
     if (len(mults) == 0) or (depth == 0) or (i == (size - 1)):
         return [], 0
 
-    ret = [Opcode(OPCODE_COPY, 0, mults)]
+    ret = [Opcode(OPCODE_COPY, ii, mults)]
 
     # Consume all the pointer decrements until the end of the loop.
     # If we encounter any non-"<" characters in the loop at this stage,
@@ -137,7 +137,7 @@ def is_copyloop(program, size, index):
 
     return ret, (i - index) + 1
 
-def is_scanloop(program, size, index):
+def is_scanloop(program, size, index, ii):
     """
     Detects a scan loop and returns equivalent opcodes
     """
@@ -146,14 +146,14 @@ def is_scanloop(program, size, index):
         clr = program[index : index + 3]
 
         if clr == "[>]":
-            return [Opcode(OPCODE_SCANR)], 3
+            return [Opcode(OPCODE_SCANR, ii)], 3
 
         elif clr == "[<]":
-            return [Opcode(OPCODE_SCANL)], 3
+            return [Opcode(OPCODE_SCANL, ii)], 3
 
     return [], 0
 
-def is_clearloop(program, size, index):
+def is_clearloop(program, size, index, ii):
     """
     Detects a clear loop and returns equivalent opcodes
     """
@@ -161,11 +161,11 @@ def is_clearloop(program, size, index):
     if index < (size - 3):
         clr = program[index : index + 3]
         if clr == "[+]" or clr == "[-]":
-            return [Opcode(OPCODE_CLEAR)], 3
+            return [Opcode(OPCODE_CLEAR, ii)], 3
 
     return [], 0
 
-def run_optimizers(program, size, index):
+def run_optimizers(program, size, index, ii):
     """
     Runs all the loop optimizers on the current token, and returns
     the resulting opcodes of the first one that succeeds
@@ -176,7 +176,7 @@ def run_optimizers(program, size, index):
     ]
 
     for opt in loop_opts:
-        codes, chars = opt(program, size, index)
+        codes, chars = opt(program, size, index, ii)
         if chars > 0:
             return codes, chars
 
@@ -209,16 +209,17 @@ def parse(program):
         opcode = opcode_map[program[pi]]
 
         if opcode == OPCODE_OPEN:
-            if ii != 0:
-                opcodes.append(Opcode(OPCODE_MOVE, 0, ii))
-                ii = 0
-
             # Optimize common loop constructs
-            codes, chars = run_optimizers(program, size, pi)
+            codes, chars = run_optimizers(program, size, pi, ii)
             if chars > 0:
                 opcodes.extend(codes)
                 pi += chars
+                ii = 0
                 continue
+
+            if ii != 0:
+                opcodes.append(Opcode(OPCODE_MOVE, 0, ii))
+                ii = 0
 
             # No optimization possible, treat as normal BF loop
             left_positions.append(len(opcodes))
@@ -289,6 +290,9 @@ class Control:
     def copyMultiply(self, i, mults):
         self._i += i
         self._check_index(self._i)
+
+        if self.tape[self._i] == 0:
+            return
 
         for off in mults:
             index = self._i + off
@@ -374,8 +378,7 @@ def execute(opcodes, stdin=None, time_limit=None, tape_size=30000,
             ctrl.put(ord(ch))
 
     def do_copy(i, val):
-        if ctrl.get() != 0:
-            ctrl.copyMultiply(i, val)
+        ctrl.copyMultiply(i, val)
 
     cmd_map = defaultdict(
         lambda: None,
