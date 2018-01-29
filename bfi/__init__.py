@@ -31,9 +31,6 @@ opcode_map = {
 class BrainfuckSyntaxError(Exception):
     pass
 
-class BrainfuckMemoryError(Exception):
-    pass
-
 class Opcode(object):
     name_map = {
         OPCODE_MOVE: "move",
@@ -264,39 +261,29 @@ class Control:
         self.i = 0
         self._i = 0
 
-    def _check_index(self, i):
-        if i < 0 or i >= self.size:
-            raise BrainfuckMemoryError("Can't access memory at cell %d, must "
-                "be within range 0-%d" % (i, self.size - 1))
-
     def movePointer(self, i, num):
         self._i += num
 
     def incrementData(self, i, num):
         self._i += i
-        self._check_index(self._i)
         self.tape[self._i] = (self.tape[self._i] + num) % 256
 
     def decrementData(self, i, num):
         self._i += i
-        self._check_index(self._i)
         self.tape[self._i] = (self.tape[self._i] - num) % 256
 
     def clearData(self, i, op_value):
         self._i += i
-        self._check_index(self._i)
         self.tape[self._i] = 0
 
     def copyMultiply(self, i, mults):
         self._i += i
-        self._check_index(self._i)
 
         if self.tape[self._i] == 0:
             return
 
         for off in mults:
             index = self._i + off
-            self._check_index(index)
             self.tape[index] = (self.tape[index]
                 + (self.tape[self._i] * mults[off])) % 256
 
@@ -304,24 +291,20 @@ class Control:
 
     def scanLeft(self, i, op_value):
         self._i += i
-        self._check_index(self._i)
 
         while self._i > 0 and self.tape[self._i] != 0:
             self._i -= 1
 
     def scanRight(self, i, op_value):
         self._i += i
-        self._check_index(self._i)
 
         while self._i < (self.size - 1) and self.tape[self._i] != 0:
             self._i += 1
 
     def get(self):
-        self._check_index(self._i)
         return self.tape[self._i]
 
     def put(self, intVal):
-        self._check_index(self._i)
         self.tape[self._i] = intVal
 
 def execute(opcodes, stdin=None, time_limit=None, tape_size=30000,
