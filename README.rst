@@ -1,15 +1,11 @@
-Brainfuck interpreter
-=====================
+fast Brainfuck interpreter in pure python
+=========================================
 
-This is a python-based interpreter for the
+This is a pure python interpreter for the
 `Brainfuck <https://en.wikipedia.org/wiki/Brainfuck>`_ esoteric programming
 language. ``bfi`` implements the standard optimisations for clear loop, copy
-loop, multiply loop and scan loop constructs, and is reasonably fast. The
-"towers of hanoi" Brainfuck program (``hanoi.b``) completes in about 2 minutes
-(compared to over an hour using a python-based interpreter with no
-optimisations),  and the mandelbrot fractal set viewer (``mandel.b``) completes
-in about 30 minutes (compared to over 2 hours using a python-based interpreter
-with no optimisations).
+loop, multiply loop and scan loop constructs, and is reasonably fast without
+requiring any special python implementations or compiled extension modules.
 
 Some minor extra features;
 
@@ -23,6 +19,29 @@ Check out `BrainfuckIntern <https://github.com/eriknyquist/BrainfuckIntern>`_,
 an implementation of a genetic algorithm that writes Brainfuck programs,
 using ``bfi`` to provide information for a useful fitness evaluation on generated
 Brainfuck programs
+
+Speed benchmark
+---------------
+
+Here is a quick comparison between ``bfi`` and two other popular pure-python
+brainfuck interpreters on github. The time show is the time that each
+interpreter took to complete the "Towers of Hanoi" program (``hanoi.b``,
+available in the ``examples`` directory):
+
++---------------------------------------------------------------------------------+-------------------------------+
+| **Interpreter name**                                                            | **Time to complete hanoi.b**  |
++=================================================================================+===============================+
+| bfi                                                                             | 1 minute, 30 seconds          |
++---------------------------------------------------------------------------------+-------------------------------+
+| `pocmo's interpreter <https://github.com/pocmo/Python-Brainfuck>`_              | 28 minutes, 51 seconds        |
++---------------------------------------------------------------------------------+-------------------------------+
+| `alexprengere's intrepreter <https://github.com/alexprengere/PythonBrainFuck>`_ | 1 hour, 7 minutes, 54 seconds |
++---------------------------------------------------------------------------------+-------------------------------+
+
+(I should note here that alexprengere's interpreter can actually go
+much faster than this, but not without using the alternative PyPy interpreter,
+or compiling some stuff. Speeds here are shown without such optimisations.
+All tests were done using the standard CPython 2.7.14 interpreter)
 
 Implementation details
 ----------------------
@@ -119,7 +138,13 @@ data is returned. Otherise, an empty string is returned. If ``time_limit`` is
 reached before the interpreter completes, ``None`` is returned.
 
 **Exceptions:** Raises ``bfi.BrainfuckSyntaxError`` for unmatched ``[`` or ``]``
-characters. Raises ``bfi.BrainfuckMemoryError`` for a bad cell access
+characters. Raises ``IndexError`` for high cell accesses (greater than the tape
+size). Low cell accesses (less than zero) wrap around to the highest cell,
+so the program ``<.`` would print the last cell in the tape. This is just a
+quirk of python list indexing. I left it this way because fixing it (i.e.
+checking for low cell accesses and throwing IndexError) incurred a high
+performance cost; the benchmark program ``hanoi.b`` took about 2 minutes instead
+of 1 minute and 30 seconds.
 
 ``bfi.parse``
 #############
@@ -155,66 +180,77 @@ Executes a list of compiled opcodes
 data is returned. Otherise, an empty string is returned. If ``time_limit`` is
 reached before the interpreter completes, ``None`` is returned.
 
-**Exceptions** Raises ``bfi.BrainfuckMemoryError`` for bad cell access
+**Exceptions** Raises ``IndexError`` for high cell accesses (greater than the
+tape size). Low cell accesses (less than zero) wrap around to the highest cell,
+so the program ``<.`` would print the last cell in the tape.
 
 Gratuitous unnecessary extras
 -----------------------------
 
 In order to make Brainfuck code execute more efficiently, it is compiled into
 an intermediate form that takes advantage of common brainfuck idioms and
-constructs. This intermediate form consists of 12 opcodes, 8 of which are
-similar to the original 8 brainfuck instructions. Here is a description of the
-12 opcodes, and what they do:
+constructs. This intermediate form consists of 11 opcodes, 8 of which are
+similar to the original 8 brainfuck instructions. The following table describes
+the opcodes:
 
 +-----------------------------------+-----------------------------------------+
 |            **Opcode**             |             **Description**             |
++===================================+=========================================+
+|          ``move <off> <num>``     | Moves the cell pointer by ``<num>``     |
+|                                   | cells. ``<off>`` is unused              |
 +-----------------------------------+-----------------------------------------+
-|          ``left <num>``           | Decrements the cell pointer by ``<num>``|
-|                                   | cells pointer outside the tape).        |
-+-----------------------------------+-----------------------------------------+
-|          ``right <num>``          | Increments the cell pointer by ``<num>``|
-|                                   | cells                                   |
-+-----------------------------------+-----------------------------------------+
-|          ``sub <num>``            | Decrements value of current cell by     |
+|          ``sub <off> <num>``      | Moves the cell pointer by ``<off>``, and|
+|                                   | decrements value of current cell by     |
 |                                   | ``<num>`` cells                         |
 +-----------------------------------+-----------------------------------------+
-|          ``add <num>``            | Increments value of current cell by     |
+|          ``add <off> <num>``      | Moves the cell pointer by ``<off>``, and|
+|                                   | increments value of current cell by     |
 |                                   | ``<num>`` cells                         |
 +-----------------------------------+-----------------------------------------+
-|         ``open <location>``       | ``<location>`` is an index into the list|
+|         ``open <off> <location>`` | ``<location>`` is an index into the list|
 |                                   | of program opcodes. If the value of     |
 |                                   | current cell is zero, jump to           |
 |                                   | ``<location>``. Otherwise, continue     |
 |                                   | execution normally (Same functionality  |
 |                                   | as brainfuck "[" instruction, except    |
-|                                   | jump location is stored with opcode)    |
+|                                   | jump location is stored with opcode).   |
+|                                   | ``<off>`` is unused                     |
 +-----------------------------------+-----------------------------------------+
-|         ``close <location>``      | ``<location>`` is an index into the list|
+|         ``close <off> <location>``| ``<location>`` is an index into the list|
 |                                   | of program opcodes. If the value of     |
 |                                   | current cell is zero, continue execution|
 |                                   | normally. Otherwise, jump to            |
 |                                   | ``<location>`` (Same functionality as   |
 |                                   | brainfuck "]" instruction, except jump  |
-|                                   | location is stored with opcode)         |
+|                                   | location is stored with opcode). In all |
+|                                   | cases the cell pointer will be moved by |
+|                                   | ``<off>``                               |
 +-----------------------------------+-----------------------------------------+
-|             ``input``             | Read one character of input and write to|
-|                                   | current cell                            |
+|             ``input <off>``       | Moves the cell pointer by ``<off>``,    |
+|                                   | then reads one character of input and   |
+|                                   | writes to current cell                  |
 +-----------------------------------+-----------------------------------------+
-|             ``output``            | Print value of current cell as ASCII    |
-|                                   | character                               |
+|             ``output <off>``      | Moves the cell pointer by ``<off>``,    |
+|                                   | then prints value of current cell as    |
+|                                   | an ASCII character                      |
 +-----------------------------------+-----------------------------------------+
-|             ``clear``             | Set value of current cell to zero       |
+|             ``clear <off>``       | Moves the cell pointer by ``<off>``,    |
+|                                   | then sets the value of current cell to  |
+|                                   | zero                                    |
 +-----------------------------------+-----------------------------------------+
-|  ``copy {<off>:<mult>, ... }``    | For each key/value pair, set the value  |
-|                                   | of the cell at (current cell + ``<off>``|
-|                                   | ) to be (value of current cell *        |
-|                                   | ``<mult>``)                             |
+|  ``copy <off> {<o>:<m>,... }``    | Moves the cell pointer by ``<off>``,    |
+|                                   | then for each key/value pair, sets the  |
+|                                   | value of the cell at (current cell +    |
+|                                   | ``<o>``) to be (value of current cell * |
+|                                   | ``<m>``)                                |
 +-----------------------------------+-----------------------------------------+
-|             ``scanl``             | Decrement the cell pointer until it     |
-|                                   | points at a cell containing 0           |
+|             ``scanl <off>``       | Moves the cell pointer by ``<off>``,    |
+|                                   | then decrements the cell pointer until  |
+|                                   | it points at a cell containing 0        |
 +-----------------------------------+-----------------------------------------+
-|             ``scanr``             | Increment the cell pointer until it     |
-|                                   | points at a cell containing 0           |
+|             ``scanr <off>``       | Moves the cell pointer by ``<off>``,    |
+|                                   | then increments the cell pointer until  |
+|                                   | it points at a cell containing 0        |
 +-----------------------------------+-----------------------------------------+
 
 If you *really want to*, you can actually view a brainfuck program in this
@@ -230,18 +266,18 @@ opcodes:
     >>> for c in opcodes: print c
     ...
 
-    add 13
-    copy {1: 2, 4: 5, 5: 2, 6: 1}
-    right 5
-    add 6
-    right 1
-    sub 3
-    right 10
-    add 15
-    open 18
-    open 11
+    add 0 13
+    copy 0 {1: 2, 4: 5, 5: 2, 6: 1}
+    add 5 6
+    sub 1 3
+    add 10 15
+    open 0 12
+    open 0 7
+    close 9 6
+    add 0 1
+    open 0 10
 
-    ... (long output, truncated...)
+    ... (long output, truncated ...)
 
 And of course, you can execute the compiled opcodes as many times as you like
 using ``bfi.execute``.
