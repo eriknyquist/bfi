@@ -1,7 +1,7 @@
 import unittest
 
 from bfi.test.utils import SampleCode, verify_exec_time, verify_tape_size
-from bfi import (interpret, BrainfuckMemoryError, BrainfuckSyntaxError)
+from bfi import interpret
 
 class TestInterpretArguments(unittest.TestCase):
     def test_stdout_kwarg(self):

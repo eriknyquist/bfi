@@ -2,7 +2,7 @@ import os
 import time
 import glob
 
-from bfi import (interpret, BrainfuckMemoryError)
+from bfi import interpret
 
 SAMPLES_DIR = os.path.join("bfi", "test", "samples")
 
@@ -50,7 +50,7 @@ def verify_tape_size(size):
 
     try:
         interpret(over, tape_size=size, buffer_stdout=True)
-    except BrainfuckMemoryError:
+    except IndexError:
         pass
     else:
         print "Error: effective tape size is not %s as expected" % size
