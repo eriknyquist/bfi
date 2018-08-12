@@ -6,6 +6,7 @@ This is a pure python interpreter for the
 language. ``bfi`` implements the standard optimisations for clear loop, copy
 loop, multiply loop and scan loop constructs, and is reasonably fast without
 requiring any special python implementations or compiled extension modules.
+Supports Python 2x and 3x.
 
 Some minor extra features;
 

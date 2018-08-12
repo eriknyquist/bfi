@@ -45,7 +45,7 @@ def verify_tape_size(size):
     try:
         interpret(edge, tape_size=size, buffer_output=True)
     except:
-        print "Error: effective tape size is not %s as expected" % size
+        print("Error: effective tape size is not %s as expected" % size)
         raise
 
     try:
@@ -53,7 +53,7 @@ def verify_tape_size(size):
     except IndexError:
         pass
     else:
-        print "Error: effective tape size is not %s as expected" % size
+        print("Error: effective tape size is not %s as expected" % size)
 
 def verify_exec_time(limit, func, *args, **kwargs):
     start = time.time()

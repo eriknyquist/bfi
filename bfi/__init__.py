@@ -29,6 +29,15 @@ opcode_map = {
     ".": OPCODE_OUTPUT,
 }
 
+# Check for string type in Python 2x and 3x
+try:
+    isinstance("", basestring)
+    def isstr(s):
+        return isinstance(s, basestring)
+except NameError:
+    def isstr(s):
+        return isinstance(s, str)
+
 class BrainfuckSyntaxError(Exception):
     """
     Raised when brainfuck source contains invalid syntax
@@ -344,7 +353,7 @@ def execute(opcodes, input_data=None, time_limit=None, tape_size=30000,
     ctrl.i = 0
 
     def write_stdout(c):
-        os.write(1, c)
+        os.write(1, c.encode('utf-8'))
 
     def write_buf(c):
         ret.append(c)
@@ -433,7 +442,7 @@ def interpret(program, input_data=None, time_limit=None, tape_size=30000,
         program will be buffered and returned as a string
     """
 
-    if not isinstance(program, basestring):
+    if not isstr(program):
         raise BrainfuckSyntaxError("expecting a string containing Brainfuck "
             "code. Got %s instead" % type(program))
 
