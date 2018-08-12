@@ -8,7 +8,7 @@ class TestInterpretArguments(unittest.TestCase):
         with SampleCode("hello_world") as program:
             self.assertEqual(interpret(program), None)
 
-            ret = interpret(program, buffer_stdout=True)
+            ret = interpret(program, buffer_output=True)
             self.assertEqual(ret.strip(), "Hello World!")
 
     def test_time_limit_kwarg(self):

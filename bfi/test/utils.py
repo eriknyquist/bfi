@@ -43,13 +43,13 @@ def verify_tape_size(size):
     over = increment + ">" + "."
 
     try:
-        interpret(edge, tape_size=size, buffer_stdout=True)
+        interpret(edge, tape_size=size, buffer_output=True)
     except:
         print "Error: effective tape size is not %s as expected" % size
         raise
 
     try:
-        interpret(over, tape_size=size, buffer_stdout=True)
+        interpret(over, tape_size=size, buffer_output=True)
     except IndexError:
         pass
     else:

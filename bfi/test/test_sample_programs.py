@@ -6,7 +6,7 @@ from bfi import interpret
 class TestSamplePrograms(unittest.TestCase):
     def verify_program(self, name, stdin, stdout):
         with SampleCode(name) as program:
-            out = interpret(program, stdin=stdin, buffer_stdout=True)
+            out = interpret(program, input_data=stdin, buffer_output=True)
             self.assertEqual(out, stdout,
                 "Brainfuck program %s gave unexpected output: %s" % (name, out))
 

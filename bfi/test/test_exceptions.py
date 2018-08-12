@@ -27,7 +27,7 @@ class TestBFIExceptions(unittest.TestCase):
         self.assertRaises(IndexError, interpret, ">>>>>>>><<>>.", tape_size=5)
 
     def test_invalid_program(self):
-        self.assertRaises(ValueError, interpret, None)
-        self.assertRaises(ValueError, interpret, {})
-        self.assertRaises(ValueError, interpret, [])
-        self.assertRaises(ValueError, interpret, 56)
+        self.assertRaises(BrainfuckSyntaxError, interpret, None)
+        self.assertRaises(BrainfuckSyntaxError, interpret, {})
+        self.assertRaises(BrainfuckSyntaxError, interpret, [])
+        self.assertRaises(BrainfuckSyntaxError, interpret, 56)
