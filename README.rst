@@ -111,6 +111,7 @@ reading/writing the user's terminal; input is passed a parameter to
 Reference
 ---------
 
+Documentation for the python API is here: `<https://bfi.readthedocs.io>`_
 
 Gratuitous unnecessary extras
 -----------------------------
