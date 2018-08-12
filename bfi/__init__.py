@@ -1,4 +1,5 @@
 import os
+
 import sys
 import time
 from collections import defaultdict
@@ -29,10 +30,17 @@ opcode_map = {
 }
 
 class BrainfuckSyntaxError(Exception):
+    """
+    Raised when brainfuck source contains invalid syntax
+    """
     pass
 
 class Opcode(object):
-    name_map = {
+    """
+    Brainfuck intermediate representation opcode
+    """
+
+    _name_map = {
         OPCODE_MOVE: "move",
         OPCODE_ADD: "add",
         OPCODE_SUB: "sub",
@@ -52,16 +60,16 @@ class Opcode(object):
         self.move = move
 
     def __str__(self):
-        ret = '%s %d' % (self.name_map[self.code], self.move)
+        ret = '%s %d' % (self._name_map[self.code], self.move)
         if self.value is not None:
             ret += ' %s' % self.value
 
         return ret
 
-def raise_unmatched(brace):
+def _raise_unmatched(brace):
     raise BrainfuckSyntaxError("Error: unmatched '" + brace + "' symbol")
 
-def count_dupes_ahead(string, index):
+def _count_dupes_ahead(string, index):
     """
     Counts the number of repeated characters in 'string', starting at 'index'
     """
@@ -76,7 +84,7 @@ def count_dupes_ahead(string, index):
 
     return ret
 
-def is_copyloop(program, size, index, ii):
+def _is_copyloop(program, size, index, ii):
     """
     Detects a copy loop, or a multiply loop and returns equivalent opcodes
     """
@@ -134,7 +142,7 @@ def is_copyloop(program, size, index, ii):
 
     return ret, (i - index) + 1
 
-def is_scanloop(program, size, index, ii):
+def _is_scanloop(program, size, index, ii):
     """
     Detects a scan loop and returns equivalent opcodes
     """
@@ -150,7 +158,7 @@ def is_scanloop(program, size, index, ii):
 
     return [], 0
 
-def is_clearloop(program, size, index, ii):
+def _is_clearloop(program, size, index, ii):
     """
     Detects a clear loop and returns equivalent opcodes
     """
@@ -162,14 +170,14 @@ def is_clearloop(program, size, index, ii):
 
     return [], 0
 
-def run_optimizers(program, size, index, ii):
+def _run_optimizers(program, size, index, ii):
     """
     Runs all the loop optimizers on the current token, and returns
     the resulting opcodes of the first one that succeeds
     """
 
     loop_opts = [
-        is_clearloop, is_copyloop, is_scanloop
+        _is_clearloop, _is_copyloop, _is_scanloop
     ]
 
     for opt in loop_opts:
@@ -181,12 +189,18 @@ def run_optimizers(program, size, index, ii):
 
 def parse(program):
     """
-    Convert the BF source into some more efficient opcodes. Specifically;
-        - Strip out whitespace and any other non-BF characters
-        - Replace copy loops, multiply loops, clear loops and scan loops with
+    Convert brainfuck source into some more efficient intermediate opcodes.
+    Specifically:
+
+        * Strip out whitespace and any other non-BF characters
+        * Replace copy loops, multiply loops, clear loops and scan loops with
           a single opcode that acheives the same effect
-        - Collapse sequences of repeated "+", "-", ">" and "<" characters into
+        * Collapse sequences of repeated "+", "-", ">" and "<" characters into
           a single opcode
+
+    :param str program: Brainfuck source code
+    :return: list of intermediate opcodes
+    :rtype: [bfi.Opcode]
     """
 
     left_positions = []
@@ -207,7 +221,7 @@ def parse(program):
 
         if opcode == OPCODE_OPEN:
             # Optimize common loop constructs
-            codes, chars = run_optimizers(program, size, pi, ii)
+            codes, chars = _run_optimizers(program, size, pi, ii)
             if chars > 0:
                 opcodes.extend(codes)
                 pi += chars
@@ -224,7 +238,7 @@ def parse(program):
 
         elif opcode == OPCODE_CLOSE:
             if len(left_positions) == 0:
-                raise_unmatched("]")
+                _raise_unmatched("]")
 
             left = left_positions.pop()
             right = len(opcodes)
@@ -236,7 +250,7 @@ def parse(program):
             opcodes.append(Opcode(opcode_map[program[pi]], ii))
             ii = 0
         else:
-            num = count_dupes_ahead(program, pi)
+            num = _count_dupes_ahead(program, pi)
             if opcode == OPCODE_LEFT:
                 ii -= (num + 1)
             elif opcode == OPCODE_RIGHT:
@@ -250,11 +264,11 @@ def parse(program):
         pi += 1
 
     if len(left_positions) != 0:
-        raise_unmatched('[')
+        _raise_unmatched('[')
 
     return opcodes
 
-class Control:
+class _Control:
     def __init__(self, tape_size):
         self.tape = bytearray(tape_size)
         self.size = tape_size
@@ -307,15 +321,23 @@ class Control:
     def put(self, intVal):
         self.tape[self._i] = intVal
 
-def execute(opcodes, stdin=None, time_limit=None, tape_size=30000,
-              buffer_stdout=False):
+def execute(opcodes, input_data=None, time_limit=None, tape_size=30000,
+              buffer_output=False):
     """
-    Execute compiled opcodes
+    Execute a list of intermediate opcodes
+
+    :param [Opcode] opcodes: opcodes to execute
+    :param str input_data: input data
+    :param float time_limit: execution time limit
+    :param int tape_size: Brainfuck program tape size
+    :param bool buffer_output: if True, any output generated by the Brainfuck \
+        program will be buffered and returned as a string
     """
 
-    ctrl = Control(tape_size)
-    if stdin != None:
-        stdin = list(reversed(stdin))
+    stdin = None
+    ctrl = _Control(tape_size)
+    if input_data != None:
+        stdin = list(reversed(input_data))
 
     size = len(opcodes)
     ret = []
@@ -338,7 +360,7 @@ def execute(opcodes, stdin=None, time_limit=None, tape_size=30000,
 
         return ret
 
-    do_write = write_buf if buffer_stdout else write_stdout
+    do_write = write_buf if buffer_output else write_stdout
     do_read = read_stdin if stdin == None else read_buf
 
     def do_open(i, val):
@@ -396,29 +418,24 @@ def execute(opcodes, stdin=None, time_limit=None, tape_size=30000,
         while ctrl.i < size:
             do_loop()
 
-    return "".join(ret) if buffer_stdout == True else None
+    return "".join(ret) if buffer_output == True else None
 
-def interpret(program, **kwargs):
+def interpret(program, input_data=None, time_limit=None, tape_size=30000,
+        buffer_output=False):
     """
     Interpret & execute a brainfuck program
+
+    :param str program: Brainfuck source code
+    :param str input_data: input data
+    :param float time_limit: execution time limit
+    :param int tape_size: Brainfuck program tape size
+    :param bool buffer_output: if True, any output generated by the Brainfuck \
+        program will be buffered and returned as a string
     """
 
     if not isinstance(program, basestring):
-        raise ValueError("expecting a string containing Brainfuck code. "
-            "Got %s instead" % type(program))
+        raise BrainfuckSyntaxError("expecting a string containing Brainfuck "
+            "code. Got %s instead" % type(program))
 
     opcodes = parse(program)
-    return execute(opcodes, **kwargs)
-
-def main():
-    if len(sys.argv) != 2:
-        print 'Usage: %s <brainfuck source file>'
-        sys.exit(1)
-
-    with open(sys.argv[1], 'r') as fh:
-        prog = fh.read()
-
-    interpret(prog)
-
-if __name__ == "__main__":
-    main()
+    return execute(opcodes, input_data, time_limit, tape_size, buffer_output)
