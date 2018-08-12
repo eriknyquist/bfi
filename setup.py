@@ -38,7 +38,7 @@ with open(README, 'r') as f:
 
 setup(
     name='bfi',
-    version='1.0',
+    version='1.0.1',
     description=('A reasonably fast optimizing Brainfuck interpreter '
         'in pure python'),
     long_description=long_description,
