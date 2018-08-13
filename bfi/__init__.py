@@ -1,5 +1,4 @@
 import os
-
 import sys
 import time
 from collections import defaultdict
@@ -353,7 +352,8 @@ def execute(opcodes, input_data=None, time_limit=None, tape_size=30000,
     ctrl.i = 0
 
     def write_stdout(c):
-        os.write(1, c.encode('utf-8'))
+        sys.stdout.write(c.encode('utf-8'))
+        sys.stdout.flush()
 
     def write_buf(c):
         ret.append(c)
@@ -369,63 +369,65 @@ def execute(opcodes, input_data=None, time_limit=None, tape_size=30000,
 
         return ret
 
+    movefunc = ctrl.movePointer
+    multfunc = ctrl.copyMultiply
+    getfunc = ctrl.get
+
     do_write = write_buf if buffer_output else write_stdout
     do_read = read_stdin if stdin == None else read_buf
 
     def do_open(i, val):
-        if ctrl.get() == 0:
+        if getfunc() == 0:
            ctrl.i = val
 
     def do_close(i, val):
-        ctrl.movePointer(0, i)
-        if ctrl.get() != 0:
+        movefunc(0, i)
+        if getfunc() != 0:
             ctrl.i = val - 1
 
     def do_output(i, val):
-        ctrl.movePointer(0, i)
-        do_write(chr(ctrl.get()))
+        movefunc(0, i)
+        do_write(chr(getfunc()))
 
     def do_input(i, val):
-        ctrl.movePointer(0, i)
+        movefunc(0, i)
         ch = do_read()
         if len(ch) > 0 and ord(ch) > 0:
             ctrl.put(ord(ch))
 
     def do_copy(i, val):
-        ctrl.copyMultiply(i, val)
+        multfunc(i, val)
 
-    cmd_map = defaultdict(
-        lambda: None,
-        {
-            OPCODE_MOVE: ctrl.movePointer,
-            OPCODE_ADD: ctrl.incrementData,
-            OPCODE_SUB: ctrl.decrementData,
-            OPCODE_CLEAR: ctrl.clearData,
-            OPCODE_COPY: do_copy,
-            OPCODE_SCANL: ctrl.scanLeft,
-            OPCODE_SCANR: ctrl.scanRight,
-            OPCODE_OPEN: do_open,
-            OPCODE_CLOSE: do_close,
-            OPCODE_OUTPUT: do_output,
-            OPCODE_INPUT: do_input
-        }
-    )
-
-    def do_loop():
-        op = opcodes[ctrl.i]
-        cmd_map[op.code](op.move, op.value)
-        ctrl.i += 1
+    cmd_map = [
+        movefunc,
+        0,
+        0,
+        ctrl.incrementData,
+        ctrl.decrementData,
+        do_open,
+        do_close,
+        do_input,
+        do_output,
+        ctrl.clearData,
+        do_copy,
+        ctrl.scanLeft,
+        ctrl.scanRight
+    ]
 
     if time_limit:
         start = time.time()
         while ctrl.i < size:
-            do_loop()
+            op = opcodes[ctrl.i]
+            cmd_map[op.code](op.move, op.value)
+            ctrl.i += 1
 
             if (time.time() - start) >= time_limit:
                 return None
     else:
         while ctrl.i < size:
-            do_loop()
+            op = opcodes[ctrl.i]
+            cmd_map[op.code](op.move, op.value)
+            ctrl.i += 1
 
     return "".join(ret) if buffer_output == True else None
 
