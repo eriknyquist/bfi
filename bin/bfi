@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-__version__ = 1.0
-
 import os
 import argparse
 
@@ -24,7 +22,7 @@ def main():
     args = parser.parse_args()
 
     if args.version:
-        print('bfi %s' % __version__)
+        print('bfi %s' % bfi.__version__)
         return
 
     if not args.file:

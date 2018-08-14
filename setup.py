@@ -38,9 +38,8 @@ with open(README, 'r') as f:
 
 setup(
     name='bfi',
-    version='1.0.1',
-    description=('A reasonably fast optimizing Brainfuck interpreter '
-        'in pure python'),
+    version='1.0.2',
+    description=('A fast optimizing Brainfuck interpreter in pure python'),
     long_description=long_description,
     url='http://github.com/eriknyquist/bfi',
     author='Erik Nyquist',
