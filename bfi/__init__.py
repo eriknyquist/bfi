@@ -1,7 +1,6 @@
 import os
 import sys
 import time
-from collections import defaultdict
 
 OPCODE_MOVE   = 0
 OPCODE_LEFT   = 1
@@ -299,6 +298,9 @@ def execute(opcodes, input_data=None, time_limit=None, tape_size=30000,
     pi = 0
     ii = 0
 
+    # Pre-bind printing function since we'll call it so frequently. This
+    # *did* speed things up very slightly in my tests, could have been a
+    # delusion, I'm leaving it in anyway...
     syswrite = sys.stdout.write
     sysflush = sys.stdout.flush
 
