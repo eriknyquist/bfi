@@ -1,3 +1,5 @@
+__version__ = "1.0.2"
+
 import os
 import sys
 import time
@@ -305,7 +307,7 @@ def execute(opcodes, input_data=None, time_limit=None, tape_size=30000,
     sysflush = sys.stdout.flush
 
     def write_stdout(c):
-        syswrite(c.encode('utf-8'))
+        syswrite(c)
         sysflush()
 
     def write_buf(c):
