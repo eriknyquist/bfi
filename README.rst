@@ -8,14 +8,6 @@ loop, multiply loop and scan loop constructs, and is reasonably fast without
 requiring any special python implementations or compiled extension modules.
 Supports Python 2x and 3x.
 
-Some minor extra features;
-
-* Allows a maximum run-time to be set, preventing infinite loops (useful for
-  auto-generated brainfuck code)
-* stdin data can optionally be passed to the Brainfuck program as a string
-  parameter when invoking the interpreter method, and stdout data from the
-  Brainfuck program can optionally be buffered and returned as a string
-
 Check out `BrainfuckIntern <https://github.com/eriknyquist/BrainfuckIntern>`_,
 an implementation of a genetic algorithm that writes Brainfuck programs,
 using ``bfi`` to provide information for a useful fitness evaluation on generated
@@ -25,14 +17,14 @@ Speed benchmark
 ---------------
 
 Here is a quick comparison between ``bfi`` and two other popular pure-python
-brainfuck interpreters on github. The time show is the time that each
+brainfuck interpreters on github. The time shown is the time that each
 interpreter took to complete the "Towers of Hanoi" program (``hanoi.b``,
 available in the ``examples`` directory):
 
 +---------------------------------------------------------------------------------+-------------------------------+
 | **Interpreter name**                                                            | **Time to complete hanoi.b**  |
 +=================================================================================+===============================+
-| bfi                                                                             | 1 minute, 30 seconds          |
+| bfi                                                                             | 1 minute, 9 seconds           |
 +---------------------------------------------------------------------------------+-------------------------------+
 | `pocmo's interpreter <https://github.com/pocmo/Python-Brainfuck>`_              | 28 minutes, 51 seconds        |
 +---------------------------------------------------------------------------------+-------------------------------+
@@ -41,7 +33,7 @@ available in the ``examples`` directory):
 
 (I should note here that alexprengere's interpreter can actually go
 much faster than this, but not without using the alternative PyPy interpreter,
-or compiling some stuff. Speeds here are shown without such optimisations.
+or compiling some stuff. Speeds here are shown without such modifications.
 All tests were done using the standard CPython 2.7.14 interpreter)
 
 Implementation details
