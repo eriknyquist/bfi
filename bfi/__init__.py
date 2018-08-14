@@ -276,59 +276,6 @@ def parse(program):
 
     return opcodes
 
-class _Control:
-    def __init__(self, tape_size):
-        self.tape = bytearray(tape_size)
-        self.size = tape_size
-        self.i = 0
-        self._i = 0
-
-    def movePointer(self, i, num):
-        self._i += num
-
-    def incrementData(self, i, num):
-        self._i += i
-        self.tape[self._i] = (self.tape[self._i] + num) % 256
-
-    def decrementData(self, i, num):
-        self._i += i
-        self.tape[self._i] = (self.tape[self._i] - num) % 256
-
-    def clearData(self, i, op_value):
-        self._i += i
-        self.tape[self._i] = 0
-
-    def copyMultiply(self, i, mults):
-        self._i += i
-
-        if self.tape[self._i] == 0:
-            return
-
-        for off in mults:
-            index = self._i + off
-            self.tape[index] = (self.tape[index]
-                + (self.tape[self._i] * mults[off])) % 256
-
-        self.tape[self._i] = 0
-
-    def scanLeft(self, i, op_value):
-        self._i += i
-
-        while self._i > 0 and self.tape[self._i] != 0:
-            self._i -= 1
-
-    def scanRight(self, i, op_value):
-        self._i += i
-
-        while self._i < (self.size - 1) and self.tape[self._i] != 0:
-            self._i += 1
-
-    def get(self):
-        return self.tape[self._i]
-
-    def put(self, intVal):
-        self.tape[self._i] = intVal
-
 def execute(opcodes, input_data=None, time_limit=None, tape_size=30000,
               buffer_output=False):
     """
@@ -343,17 +290,21 @@ def execute(opcodes, input_data=None, time_limit=None, tape_size=30000,
     """
 
     stdin = None
-    ctrl = _Control(tape_size)
     if input_data != None:
         stdin = list(reversed(input_data))
 
+    tape = bytearray(tape_size)
     size = len(opcodes)
     ret = []
-    ctrl.i = 0
+    pi = 0
+    ii = 0
+
+    syswrite = sys.stdout.write
+    sysflush = sys.stdout.flush
 
     def write_stdout(c):
-        sys.stdout.write(c.encode('utf-8'))
-        sys.stdout.flush()
+        syswrite(c.encode('utf-8'))
+        sysflush()
 
     def write_buf(c):
         ret.append(c)
@@ -369,65 +320,73 @@ def execute(opcodes, input_data=None, time_limit=None, tape_size=30000,
 
         return ret
 
-    movefunc = ctrl.movePointer
-    multfunc = ctrl.copyMultiply
-    getfunc = ctrl.get
-
     do_write = write_buf if buffer_output else write_stdout
     do_read = read_stdin if stdin == None else read_buf
 
-    def do_open(i, val):
-        if getfunc() == 0:
-           ctrl.i = val
-
-    def do_close(i, val):
-        movefunc(0, i)
-        if getfunc() != 0:
-            ctrl.i = val - 1
-
-    def do_output(i, val):
-        movefunc(0, i)
-        do_write(chr(getfunc()))
-
-    def do_input(i, val):
-        movefunc(0, i)
-        ch = do_read()
-        if len(ch) > 0 and ord(ch) > 0:
-            ctrl.put(ord(ch))
-
-    def do_copy(i, val):
-        multfunc(i, val)
-
-    cmd_map = [
-        movefunc,
-        0,
-        0,
-        ctrl.incrementData,
-        ctrl.decrementData,
-        do_open,
-        do_close,
-        do_input,
-        do_output,
-        ctrl.clearData,
-        do_copy,
-        ctrl.scanLeft,
-        ctrl.scanRight
-    ]
-
     if time_limit:
         start = time.time()
-        while ctrl.i < size:
-            op = opcodes[ctrl.i]
-            cmd_map[op.code](op.move, op.value)
-            ctrl.i += 1
 
-            if (time.time() - start) >= time_limit:
-                return None
-    else:
-        while ctrl.i < size:
-            op = opcodes[ctrl.i]
-            cmd_map[op.code](op.move, op.value)
-            ctrl.i += 1
+    while ii < size:
+        op = opcodes[ii]
+
+        if op.code == OPCODE_MOVE:
+            pi += op.value
+
+        elif op.code == OPCODE_ADD:
+            pi += op.move
+            tape[pi] = (tape[pi] + op.value) % 256
+
+        elif op.code == OPCODE_SUB:
+            pi += op.move
+            tape[pi] = (tape[pi] - op.value) % 256
+
+        elif op.code == OPCODE_OPEN:
+            pi += op.move
+            if tape[pi] == 0:
+               ii = op.value
+
+        elif op.code == OPCODE_CLOSE:
+            pi += op.move
+            if tape[pi] != 0:
+                ii = op.value - 1
+
+        elif op.code == OPCODE_INPUT:
+            pi += op.move
+            ch = do_read()
+            if len(ch) > 0 and ord(ch) > 0:
+                tape[pi] = ord(ch)
+
+        elif op.code == OPCODE_OUTPUT:
+            pi += op.move
+            do_write(chr(tape[pi]))
+
+        elif op.code == OPCODE_CLEAR:
+            pi += op.move
+            tape[pi] = 0
+
+        elif op.code == OPCODE_COPY:
+            pi += op.move
+            if tape[pi] > 0:
+                for off in op.value:
+                    index = pi + off
+                    tape[index] = (tape[index]
+                        + (tape[pi] * op.value[off])) % 256
+
+                tape[pi] = 0
+
+        elif op.code == OPCODE_SCANL:
+            pi += op.move
+            while pi > 0 and tape[pi] != 0:
+                pi -= 1
+
+        elif op.code == OPCODE_SCANR:
+            pi += op.move
+            while pi < (size - 1) and tape[pi] != 0:
+                pi += 1
+
+        ii += 1
+        if time_limit and ((time.time() - start) >= time_limit):
+            return None
 
     return "".join(ret) if buffer_output == True else None
 
