@@ -8,11 +8,6 @@ loop, multiply loop and scan loop constructs, and is reasonably fast without
 requiring any special python implementations or compiled extension modules.
 Supports Python 2x and 3x.
 
-Check out `BrainfuckIntern <https://github.com/eriknyquist/BrainfuckIntern>`_,
-an implementation of a genetic algorithm that writes Brainfuck programs,
-using ``bfi`` to provide information for a useful fitness evaluation on generated
-Brainfuck programs
-
 Speed benchmark
 ---------------
 
