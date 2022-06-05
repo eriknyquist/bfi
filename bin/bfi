@@ -17,6 +17,8 @@ def main():
         "instead of interpreting")
     parser.add_argument('-t', '--tape-size', dest='size', type=int,
         help="Tape size for brainfuck program", default=30000)
+    parser.add_argument('-s', '--input-string', dest='input_string',
+        help="Instead of reading input from stdin, read each subsequent byte from this string", default=None)
 
 
     args = parser.parse_args()
@@ -37,7 +39,7 @@ def main():
             print(opcode)
     else:
         try:
-            bfi.interpret(prog, tape_size=args.size)
+            bfi.interpret(prog, input_data=args.input_string, tape_size=args.size)
         except bfi.BrainfuckSyntaxError as e:
             print('Brainfuck syntax error: %s' % e)
 
