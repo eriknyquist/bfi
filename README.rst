@@ -1,12 +1,23 @@
-fast Brainfuck interpreter in pure python
+Fast Brainfuck interpreter in pure python
 =========================================
 
 This is a pure python interpreter for the
 `Brainfuck <https://en.wikipedia.org/wiki/Brainfuck>`_ esoteric programming
-language. ``bfi`` implements the standard optimisations for clear loop, copy
-loop, multiply loop and scan loop constructs, and is reasonably fast without
-requiring any special python implementations or compiled extension modules.
-Supports Python 2x and 3x.
+language. ``bfi`` is quite fast without requiring any special python implementations
+or compiled extension modules. ``bfi`` Supports Python 2x and 3x.
+
+``bfi`` achieves a significant speedup in the execution of brainfuck
+programs by first compiling brainfuck source code into an intermediate form.
+This intermediate form takes advantage of common brainfuck programming constructs
+to execute much faster than if we were to interpret & execute the brainfuck source directly.
+
+Take moving the cell pointer, as a relativey simple example; to execute ``<<<<<<<<<<``,
+we could iterate over each ``<`` character, and perform 10 separate "cell pointer decrement"
+operations. This would be the slow option. Alternatively, we could collapse those 10 instructions
+into a single instruction to decrement the cell pointer by 10 in a single operation. This is
+generally how the opcodes for the intermediate form work. All runs of cell pointer
+increment/decrements are collapsed like this, as well as several other similar optimizations.
+
 
 Speed benchmark
 ---------------
@@ -178,7 +189,7 @@ opcodes:
 
     >>> with open('bfi/examples/mandel.b', 'r') as fh:
     ...     program = fh.read()
-    ... 
+    ...
     >>> opcodes = bfi.parse(program)
     >>> for c in opcodes: print c
     ...
