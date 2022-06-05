@@ -325,7 +325,7 @@ def execute(opcodes, input_data=None, time_limit=None, tape_size=30000,
         ret.append(chr(c))
 
     def read_stdin():
-        return os.read(0, 1)
+        return ord(os.read(0, 1))
 
     def read_buf():
         try:
