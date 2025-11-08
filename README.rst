@@ -4,7 +4,7 @@ Fast Brainfuck interpreter in pure python |brain|
 =================================================
 
 .. |tests_badge| image:: https://github.com/eriknyquist/bfi/actions/workflows/tests.yml/badge.svg
-.. |version_badge| image:: https://badgen.net/bfi/v/duckargs
+.. |version_badge| image:: https://badgen.net/bfi/v/bfi
 .. |license_badge| image:: https://badgen.net/pypi/license/bfi
 .. |downloads_badge| image:: https://static.pepy.tech/badge/bfi
 
