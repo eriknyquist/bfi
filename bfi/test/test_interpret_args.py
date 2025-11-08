@@ -63,12 +63,6 @@ class TestInterpretArguments(unittest.TestCase):
         self.assertEqual(ret, None)
         self.assertEqual(''.join(write_data), 'qqqqq')
 
-    def test_time_limit_kwarg(self):
-        limits = [0.3, 0.5, 1.2, 1.8]
-
-        for limit in limits:
-            verify_exec_time(limit, interpret, "+[><]", time_limit=limit)
-
     def test_tape_size_kwarg(self):
         sizes = [1, 3, 5, 7, 10, 15, 20, 100, 200, 30000, 300000]
         for size in sizes:

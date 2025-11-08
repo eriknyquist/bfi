@@ -63,19 +63,37 @@ Using the interpreter from the command-line
 --------------------------------------------
 
 Once installed, the brainfuck interpreter can be invoked from the command line
-using the ``bfi`` command. Just run ``bfi`` and pass a brainfuck source file.
-Several sample Brainfuck programs are provided in the ``examples`` directory
-within the installed package (in your system's python2.7/dist-packages
-directory- on linux-based systems, for example, the full path might be
-/usr/local/lib/python2.7/dist-packages/bfi/examples).
+using the ``bfi`` command, or using ``python -m bfi``. Just run ``bfi`` and pass
+a brainfuck source file. Several sample Brainfuck programs are provided in the
+``examples`` directory within the installed package-- use ``bfi -e`` to show the
+paths of all installed example files:
+
+::
+
+    $> bfi -e
+
+    C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\bfcl.bf
+    C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\bitwidth.bf
+    C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\collatz.b
+    C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\eoftest.b
+    C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\fib.b
+    C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\gameoflife.b
+    C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\hanoi.b
+    C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\hello_world.b
+    C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\LostKingdom.b
+    C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\mandel.b
+    C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\numwarp.b
+    C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\primes.bf
+    C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\rot13.b
+    C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\sierpinski.b
+    C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\TheBrainfuckedLoneWolf.b
 
 In the sample commands below, we will run "Lost Kingdom", a text-based adventure
 game written in Brainfuck:
 
 ::
 
-    $> cd <dist-packages-directory>/bfi/examples
-    $> bfi LostKingdom.b
+    $> bfi C:\Users\Gamer\AppData\Roaming\Python\Python311\site-packages\bfi\examples\LostKingdom.b
 
 
 Using the interpreter in your own code

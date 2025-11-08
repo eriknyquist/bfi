@@ -48,9 +48,13 @@ setup(
     author_email='eknyquist@gmail.com',
     license='Apache 2.0',
     packages=['bfi'],
-    scripts=['bin/bfi'],
     classifiers = classifiers,
     cmdclass={'test': RunBFITests},
     include_package_data=True,
-    zip_safe=False
+    zip_safe=False,
+    entry_points = {
+        'console_scripts': [
+            'bfi=bfi.__main__:main'
+        ]
+    }
 )
