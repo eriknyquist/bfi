@@ -1,5 +1,15 @@
-Fast Brainfuck interpreter in pure python
-=========================================
+.. |brain| unicode:: 0x1F9E0
+
+Fast Brainfuck interpreter in pure python |brain|
+=================================================
+
+.. |tests_badge| image:: https://github.com/eriknyquist/bfi/actions/workflows/tests.yml/badge.svg
+.. |version_badge| image:: https://badgen.net/bfi/v/duckargs
+.. |license_badge| image:: https://badgen.net/pypi/license/bfi
+.. |downloads_badge| image:: https://static.pepy.tech/badge/bfi
+.. |conda_badge| image:: https://img.shields.io/conda/dn/conda-forge/bfi.svg?label=conda-forge
+
+|tests_badge| |version_badge| |license_badge| |downloads_badge| |conda_badge|
 
 This is a pure python interpreter for the
 `Brainfuck <https://en.wikipedia.org/wiki/Brainfuck>`_ esoteric programming
