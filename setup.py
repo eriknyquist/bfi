@@ -19,6 +19,8 @@ classifiers = [
     'Intended Audience :: Information Technology',
     'Programming Language :: Python :: 2',
     'Programming Language :: Python :: 2.7',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.11',
 ]
 
 class RunBFITests(Command):
@@ -46,7 +48,7 @@ setup(
     url='http://github.com/eriknyquist/bfi',
     author='Erik Nyquist',
     author_email='eknyquist@gmail.com',
-    license='Apache 2.0',
+    license='MIT',
     packages=['bfi'],
     classifiers = classifiers,
     cmdclass={'test': RunBFITests},
