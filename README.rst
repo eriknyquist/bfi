@@ -7,9 +7,8 @@ Fast Brainfuck interpreter in pure python |brain|
 .. |version_badge| image:: https://badgen.net/bfi/v/duckargs
 .. |license_badge| image:: https://badgen.net/pypi/license/bfi
 .. |downloads_badge| image:: https://static.pepy.tech/badge/bfi
-.. |conda_badge| image:: https://img.shields.io/conda/dn/conda-forge/bfi.svg?label=conda-forge
 
-|tests_badge| |version_badge| |license_badge| |downloads_badge| |conda_badge|
+|tests_badge| |version_badge| |license_badge| |downloads_badge|
 
 This is a pure python interpreter for the
 `Brainfuck <https://en.wikipedia.org/wiki/Brainfuck>`_ esoteric programming
